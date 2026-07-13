@@ -1,0 +1,79 @@
+@import "tailwindcss";
+
+:root {
+  --lumina-bg: #1e1e1e;
+  --lumina-bg-elevated: #2b2b2b;
+  --lumina-bg-panel: #323232;
+  --lumina-bg-hover: #3a3a3a;
+  --lumina-border: #474747;
+  --lumina-text: #e8e8e8;
+  --lumina-text-muted: #9b9b9b;
+  --lumina-accent: #1473e6;
+  --lumina-accent-hover: #0d66d0;
+  --lumina-pro: #ff6b00;
+  --lumina-success: #2d9d78;
+  --lumina-danger: #e34850;
+  --lumina-toolbar: #1a1a1a;
+  --lumina-canvas-bg: #262626;
+}
+
+@theme inline {
+  --color-lumina-bg: var(--lumina-bg);
+  --color-lumina-bg-elevated: var(--lumina-bg-elevated);
+  --color-lumina-bg-panel: var(--lumina-bg-panel);
+  --color-lumina-bg-hover: var(--lumina-bg-hover);
+  --color-lumina-border: var(--lumina-border);
+  --color-lumina-text: var(--lumina-text);
+  --color-lumina-text-muted: var(--lumina-text-muted);
+  --color-lumina-accent: var(--lumina-accent);
+  --color-lumina-accent-hover: var(--lumina-accent-hover);
+  --color-lumina-pro: var(--lumina-pro);
+  --color-lumina-success: var(--lumina-success);
+  --color-lumina-danger: var(--lumina-danger);
+  --color-lumina-toolbar: var(--lumina-toolbar);
+  --color-lumina-canvas-bg: var(--lumina-canvas-bg);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+body {
+  background: var(--lumina-bg);
+  color: var(--lumina-text);
+  font-family: var(--font-sans), "Adobe Clean", "Segoe UI", system-ui, sans-serif;
+  font-size: 13px;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--lumina-accent) 40%, transparent);
+}
+
+.lumina-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.lumina-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.lumina-scrollbar::-webkit-scrollbar-thumb {
+  background: var(--lumina-border);
+  border-radius: 4px;
+}
+
+.lumina-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #5a5a5a;
+}

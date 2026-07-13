@@ -1,0 +1,9 @@
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+# Next.js 16 は Netlify が OpenNext アダプターで自動対応します。
+# プラグインのバージョン固定は不要（Netlify が自動更新します）。
