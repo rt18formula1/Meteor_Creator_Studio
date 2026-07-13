@@ -14,15 +14,15 @@ export type PlanLimits = {
 
 export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
   free: {
-    maxLayers: 5,
-    maxCanvasWidth: 1920,
-    maxCanvasHeight: 1080,
-    exportFormats: ["png", "jpeg"],
-    watermarkOnExport: true,
-    cloudStorageGb: 2,
-    aiFeatures: false,
-    batchExport: false,
-    advancedFilters: false,
+    maxLayers: Infinity,
+    maxCanvasWidth: 16384,
+    maxCanvasHeight: 16384,
+    exportFormats: ["png", "jpeg", "webp", "svg", "psd"],
+    watermarkOnExport: false,
+    cloudStorageGb: 100,
+    aiFeatures: true,
+    batchExport: true,
+    advancedFilters: true,
   },
   pro: {
     maxLayers: Infinity,
