@@ -21,6 +21,7 @@ import { AgentPanel } from "@/components/agent/AgentPanel";
 import { useEditorStore } from "@/store/use-editor";
 import { useEditorBridge } from "@/store/use-editor-bridge";
 import { useSubscription } from "@/store/use-subscription";
+import { useShortcutsStore } from "@/store/use-shortcuts-store";
 import { PLAN_LIMITS, canAddLayer } from "@/lib/freemium";
 import {
   DEFAULT_CANVAS_HEIGHT,
@@ -249,45 +250,8 @@ export function PhotoEditor() {
     container.style.transformOrigin = "center center";
   }, [zoom]);
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+  // 新しいショートカット処理はコンポーネント下部に配置されます
 
-      if ((e.metaKey || e.ctrlKey) && e.key === "s") {
-        e.preventDefault();
-        handleSaveProject();
-        return;
-      }
-      if ((e.metaKey || e.ctrlKey) && e.key === "e") {
-        e.preventDefault();
-        setShowExportModal(true);
-        return;
-      }
-      if ((e.metaKey || e.ctrlKey) && e.key === "z") {
-        e.preventDefault();
-        if (e.shiftKey) handleRedo();
-        else handleUndo();
-        return;
-      }
-
-      const shortcuts: Record<string, string> = {
-        v: "select",
-        b: "brush",
-        e: "eraser",
-        t: "text",
-        u: "rectangle",
-        o: "ellipse",
-        i: "eyedropper",
-      };
-      const tool = shortcuts[e.key.toLowerCase()];
-      if (tool && !e.metaKey && !e.ctrlKey) {
-        useEditorStore.getState().setActiveTool(tool as typeof activeTool);
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [handleSaveProject, setShowExportModal]);
 
   const sampleColorAt = useCallback(
     (x: number, y: number) => {
@@ -552,6 +516,67 @@ export function PhotoEditor() {
     },
     [loadCanvasFromJson, selectedLayerId],
   );
+
+  // ショートカット設定をストアから取得
+  const shortcuts = useShortcutsStore((s) => s.shortcuts);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement ||
+        (e.target as HTMLElement).isContentEditable
+      ) {
+        return;
+      }
+
+      const rawKey = e.key.toLowerCase();
+      const ctrlOrMeta = e.ctrlKey || e.metaKey;
+      const shift = e.shiftKey;
+      const alt = e.altKey;
+
+      const matched = Object.values(shortcuts).find(
+        (s) =>
+          s.key === rawKey &&
+          s.ctrlOrMeta === ctrlOrMeta &&
+          s.shift === shift &&
+          s.alt === alt
+      );
+
+      if (!matched) return;
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      switch (matched.action) {
+        case "select":
+        case "brush":
+        case "eraser":
+        case "text":
+        case "rectangle":
+        case "ellipse":
+        case "eyedropper":
+          useEditorStore.getState().setActiveTool(matched.action as typeof activeTool);
+          break;
+        case "undo":
+          handleUndo();
+          break;
+        case "redo":
+          handleRedo();
+          break;
+        case "save":
+          handleSaveProject();
+          break;
+        case "export":
+          setShowExportModal(true);
+          break;
+        default:
+          break;
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleSaveProject, setShowExportModal, shortcuts, activeTool, handleUndo, handleRedo]);
 
   return (
     <div className="flex h-full flex-col">
