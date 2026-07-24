@@ -4,7 +4,8 @@ import { useState } from "react";
 import { useEditorBridge } from "@/store/use-editor-bridge";
 import { useSubscription } from "@/store/use-subscription";
 import type { EditorCommand } from "@/lib/editor/command-engine";
-import { Bot, Loader2, Play, Send } from "lucide-react";
+import { DEVELOPMENT_UNLOCKED, PLAN_DESIGN_LIMITS } from "@/lib/freemium";
+import { Bot, Loader2, Send } from "lucide-react";
 
 type AgentLog = {
   id: string;
@@ -60,6 +61,7 @@ const PRESETS: { label: string; commands: EditorCommand[] }[] = [
 export function AgentPanel() {
   const handlers = useEditorBridge((s) => s.handlers);
   const tier = useSubscription((s) => s.tier);
+  const designedLimits = PLAN_DESIGN_LIMITS[tier];
   const [prompt, setPrompt] = useState("");
   const [logs, setLogs] = useState<AgentLog[]>([]);
   const [loading, setLoading] = useState(false);
@@ -157,9 +159,23 @@ export function AgentPanel() {
       </div>
 
       <div className="border-b border-lumina-border p-2">
-        <p className="mb-2 text-[10px] text-lumina-text-muted">
-          Manus 等の外部AIは <code className="text-lumina-accent">/api/v1</code> から同じ操作が可能です。
-        </p>
+        <div className="mb-2 rounded border border-lumina-border bg-lumina-bg-elevated p-2">
+          <div className="mb-1 flex items-center justify-between">
+            <span className="text-[10px] font-semibold text-lumina-text">
+              {tier === "free" ? "Free Agent" : "Pro Agent"}
+            </span>
+            <span className="rounded bg-lumina-accent/15 px-1.5 py-0.5 text-[9px] text-lumina-accent">
+              /api/v1
+            </span>
+          </div>
+          <p className="text-[10px] leading-relaxed text-lumina-text-muted">
+            Manus 等の外部AIは同じ操作が可能です。{DEVELOPMENT_UNLOCKED
+              ? "開発中はFreeでも制限解除中。"
+              : ""}{tier === "free"
+              ? `製品版Free想定: ${designedLimits.maxLayers}レイヤー、${designedLimits.maxCanvasWidth}×${designedLimits.maxCanvasHeight}px。`
+              : "レイヤー無制限、高度なフィルター、4K以上のキャンバスに対応。"}
+          </p>
+        </div>
         <div className="flex flex-wrap gap-1">
           {PRESETS.map((preset) => (
             <button

@@ -1,7 +1,7 @@
 import { agentJson, handleOptions, validateAgentApiKey } from "@/lib/agent/auth";
 import { type EditorCommand, executeCommands } from "@/lib/editor/command-engine";
 import { createEmptyCanvas, extractLayers } from "@/lib/editor/document";
-import { PLAN_LIMITS } from "@/lib/freemium";
+import { getPlanLimitMeta, PLAN_LIMITS } from "@/lib/freemium";
 import type { PlanTier } from "@/lib/types";
 
 type RunBody = {
@@ -30,6 +30,7 @@ export async function POST(request: Request) {
   const tier: PlanTier = body.tier === "pro" ? "pro" : "free";
   const canvas = body.canvas ?? createEmptyCanvas();
   const commands = body.commands ?? [];
+  const limits = PLAN_LIMITS[tier];
 
   if (commands.length === 0 && body.prompt) {
     // 簡易プロンプト解析（デモ用 — 本番は LLM 連携）
@@ -62,7 +63,7 @@ export async function POST(request: Request) {
   }
 
   const { canvas: nextCanvas, results, layers } = executeCommands(canvas, commands, {
-    maxLayers: PLAN_LIMITS[tier].maxLayers,
+    maxLayers: limits.maxLayers,
   });
 
   return agentJson({
@@ -74,6 +75,7 @@ export async function POST(request: Request) {
     layers,
     layersSummary: extractLayers(nextCanvas),
     tier,
+    plan: getPlanLimitMeta(tier),
     nextSteps: [
       "Apply returned canvas JSON to editor via loadFromJSON",
       "Or chain another POST /api/v1/agent/run with updated canvas",
