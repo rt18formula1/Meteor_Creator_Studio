@@ -40,6 +40,12 @@ export const AGENT_TOOLS: AgentTool[] = [
       properties: {
         width: { type: "number", default: 1920 },
         height: { type: "number", default: 1080 },
+        tier: {
+          type: "string",
+          enum: ["free", "pro"],
+          default: "free",
+          description: "free は最大 1920x1080、pro は最大 16384px",
+        },
       },
     },
   },
@@ -253,6 +259,11 @@ export const OPENAPI_SPEC = {
         parameters: [
           { name: "width", in: "query", schema: { type: "integer", default: 1920 } },
           { name: "height", in: "query", schema: { type: "integer", default: 1080 } },
+          {
+            name: "tier",
+            in: "query",
+            schema: { type: "string", enum: ["free", "pro"], default: "free" },
+          },
         ],
         responses: { "200": { description: "空キャンバス" } },
       },

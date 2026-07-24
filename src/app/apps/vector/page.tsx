@@ -1,5 +1,5 @@
-import { ComingSoonPage } from "@/components/hub/ComingSoonPage";
+import { VectorEditor } from "@/components/editor/VectorEditor";
 
 export default function VectorPage() {
-  return <ComingSoonPage appName="Editional Vector" />;
+  return <VectorEditor />;
 }

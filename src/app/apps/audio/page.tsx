@@ -1,5 +1,5 @@
-import { ComingSoonPage } from "@/components/hub/ComingSoonPage";
+import { AudioEditor } from "@/components/editor/AudioEditor";
 
 export default function AudioPage() {
-  return <ComingSoonPage appName="Editional Audio" />;
+  return <AudioEditor />;
 }

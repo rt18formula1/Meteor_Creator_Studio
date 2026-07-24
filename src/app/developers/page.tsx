@@ -1,6 +1,7 @@
 "use client";
 
 import { HubHeader } from "@/components/hub/HubHeader";
+import { DEVELOPMENT_UNLOCKED, PLAN_DESIGN_LIMITS } from "@/lib/freemium";
 import Link from "next/link";
 import { Bot, Code, ExternalLink } from "lucide-react";
 
@@ -15,6 +16,8 @@ const ENDPOINTS = [
 
 export default function DevelopersPage() {
   const baseUrl = typeof window !== "undefined" ? window.location.origin : "";
+  const freeLimits = PLAN_DESIGN_LIMITS.free;
+  const proLimits = PLAN_DESIGN_LIMITS.pro;
 
   return (
     <div className="flex h-full flex-col">
@@ -41,7 +44,7 @@ export default function DevelopersPage() {
             </h2>
             <pre className="overflow-x-auto rounded-lg bg-lumina-bg p-4 text-[11px] leading-relaxed text-lumina-text">
 {`# 1. 空キャンバスを取得
-curl ${baseUrl}/api/v1/photo/canvas
+curl "${baseUrl}/api/v1/photo/canvas?tier=free&width=1920&height=1080"
 
 # 2. コマンドを実行
 curl -X POST ${baseUrl}/api/v1/photo/execute \\
@@ -74,6 +77,31 @@ curl -X POST ${baseUrl}/api/v1/photo/execute \\
                   <span className="text-[11px] text-lumina-text-muted">{ep.desc}</span>
                 </div>
               ))}
+            </div>
+          </section>
+
+          <section className="mb-8 rounded-xl border border-lumina-border bg-lumina-bg-elevated p-6">
+            <h2 className="mb-2 text-sm font-semibold">フリーミアム制限</h2>
+            {DEVELOPMENT_UNLOCKED && (
+              <p className="mb-3 rounded border border-lumina-accent/30 bg-lumina-accent/10 p-2 text-[11px] text-lumina-text-muted">
+                開発中は動作確認を優先するため、API実行時の価格壁は解除されています。
+              </p>
+            )}
+            <div className="grid gap-2 text-[11px] text-lumina-text-muted sm:grid-cols-2">
+              <div className="rounded border border-lumina-border bg-lumina-bg p-3">
+                <p className="mb-1 font-semibold text-lumina-text">Free</p>
+                <p>
+                  {freeLimits.maxLayers}レイヤー、{freeLimits.maxCanvasWidth}×{freeLimits.maxCanvasHeight}px、
+                  {freeLimits.exportFormats.join(" / ")}。高度なフィルターは利用できません。
+                </p>
+              </div>
+              <div className="rounded border border-lumina-pro/40 bg-lumina-pro/10 p-3">
+                <p className="mb-1 font-semibold text-lumina-text">Pro</p>
+                <p>
+                  レイヤー無制限、最大{proLimits.maxCanvasWidth.toLocaleString()}px、
+                  全フォーマット、高度なフィルター、バッチ処理に対応します。
+                </p>
+              </div>
             </div>
           </section>
 

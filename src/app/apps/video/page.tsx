@@ -1,5 +1,5 @@
-import { ComingSoonPage } from "@/components/hub/ComingSoonPage";
+import { VideoEditor } from "@/components/editor/VideoEditor";
 
 export default function VideoPage() {
-  return <ComingSoonPage appName="Editional Video" />;
+  return <VideoEditor />;
 }

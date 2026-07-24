@@ -1,5 +1,5 @@
-import { ComingSoonPage } from "@/components/hub/ComingSoonPage";
+import { LayoutEditor } from "@/components/editor/LayoutEditor";
 
 export default function LayoutPage() {
-  return <ComingSoonPage appName="Editional Layout" />;
+  return <LayoutEditor />;
 }

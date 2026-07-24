@@ -4,7 +4,7 @@ import {
   executeCommands,
 } from "@/lib/editor/command-engine";
 import { type CanvasDocument, extractLayers } from "@/lib/editor/document";
-import { PLAN_LIMITS } from "@/lib/freemium";
+import { getPlanLimitMeta, PLAN_LIMITS } from "@/lib/freemium";
 import type { PlanTier } from "@/lib/types";
 
 type ExecuteBody = {
@@ -41,6 +41,7 @@ export async function POST(request: Request) {
         error: "plan_limit",
         message: "Advanced filters require Pro plan",
         blockedCommands: filterCommands.map((c) => c.type),
+        plan: getPlanLimitMeta(tier),
       },
       403,
     );
@@ -56,9 +57,10 @@ export async function POST(request: Request) {
     results,
     layers,
     tier,
+    plan: getPlanLimitMeta(tier),
     meta: {
       layerCount: layers.length,
-      maxLayers: limits.maxLayers === Infinity ? null : limits.maxLayers,
+      maxLayers: getPlanLimitMeta(tier).maxLayers,
     },
   });
 }

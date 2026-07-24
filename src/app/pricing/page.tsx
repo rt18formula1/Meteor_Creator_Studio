@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { HubHeader } from "@/components/hub/HubHeader";
-import { PLAN_LIMITS, PRICING } from "@/lib/freemium";
+import { DEVELOPMENT_UNLOCKED, PLAN_DESIGN_LIMITS, PLAN_LIMITS, PRICING } from "@/lib/freemium";
 import { useSubscription } from "@/store/use-subscription";
 import { Check, X } from "lucide-react";
 
@@ -29,13 +29,16 @@ export default function PricingPage() {
               current={tier === "free"}
               onSelect={() => setTier("free")}
               features={[
-                { label: "レイヤー5枚まで", included: true },
-                { label: "キャンバス 1920×1080まで", included: true },
-                { label: "PNG / JPEG エクスポート", included: true },
-                { label: "クラウド 2GB", included: true },
+                { label: `レイヤー${PLAN_DESIGN_LIMITS.free.maxLayers}枚まで`, included: true },
+                {
+                  label: `キャンバス ${PLAN_DESIGN_LIMITS.free.maxCanvasWidth}×${PLAN_DESIGN_LIMITS.free.maxCanvasHeight}まで`,
+                  included: true,
+                },
+                { label: `${PLAN_DESIGN_LIMITS.free.exportFormats.join(" / ").toUpperCase()} エクスポート`, included: true },
+                { label: `クラウド ${PLAN_DESIGN_LIMITS.free.cloudStorageGb}GB`, included: true },
                 { label: "基本ツール一式", included: true },
-                { label: "エクスポート時ウォーターマーク", included: false },
-                { label: "AI生成・背景除去", included: false },
+                { label: "AIエージェント操作", included: PLAN_DESIGN_LIMITS.free.aiFeatures },
+                { label: "高度なフィルター", included: PLAN_DESIGN_LIMITS.free.advancedFilters },
                 { label: "バッチエクスポート", included: false },
               ]}
             />
@@ -64,6 +67,7 @@ export default function PricingPage() {
 
           <p className="mt-8 text-center text-xs text-lumina-text-muted">
             ※ デモ用の切り替えです。本番ではStripe等の決済連携を実装します。
+            {DEVELOPMENT_UNLOCKED && " 開発中はFreeでも実行制限を解除しています。"}
           </p>
 
           <div className="mt-6 text-center">
