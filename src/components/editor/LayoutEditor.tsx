@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useCallback } from "react";
+import Link from "next/link";
 import {
   Plus,
   Trash2,
@@ -18,6 +19,7 @@ import {
   Maximize2,
   Eye,
   EyeOff,
+  ArrowLeft,
 } from "lucide-react";
 
 interface TextFrame {
@@ -218,8 +220,16 @@ export function LayoutEditor() {
     >
       {/* ヘッダー */}
       <header className="flex h-12 shrink-0 items-center justify-between border-b border-lumina-border bg-[#181825] px-4 shadow-md">
-        <div className="flex items-center gap-6">
-          <div className="flex items-center gap-2">
+        <div className="flex items-center gap-4">
+          <Link
+            href="/"
+            className="flex items-center gap-1 rounded px-2 py-1 text-xs text-lumina-text-muted transition hover:bg-lumina-bg-hover hover:text-lumina-text"
+            title="ホームに戻る"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            <span>ホーム</span>
+          </Link>
+          <div className="flex items-center gap-2 border-l border-lumina-border pl-4">
             <div className="flex h-7 w-7 items-center justify-center rounded bg-gradient-to-br from-pink-600 to-rose-600 text-xs font-bold text-white">
               La
             </div>

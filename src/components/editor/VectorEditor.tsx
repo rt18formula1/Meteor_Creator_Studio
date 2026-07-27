@@ -1,647 +1,240 @@
 "use client";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { MousePointer2, Pen, Square, Circle, Type, Download, Undo2, Redo2, ZoomIn, ZoomOut, Trash2, Move } from "lucide-react";
 
-import React, { useRef, useState, useEffect, useCallback } from "react";
-import {
-  Canvas,
-  Rect,
-  Circle,
-  Path,
-  IText,
-  Group,
-  type FabricObject,
-  PencilBrush,
-} from "fabric";
-import {
-  MousePointer2,
-  Square,
-  Circle as CircleIcon,
-  Type,
-  AlignLeft,
-  AlignCenter,
-  AlignRight,
-  AlignVerticalSpaceAround,
-  Grid,
-  Layers,
-  Settings,
-  Download,
-  FolderOpen,
-  Plus,
-  Trash2,
-  FolderPlus,
-  Undo2,
-  Redo2,
-  Trash,
-  MoveUp,
-  MoveDown,
-} from "lucide-react";
-import { useShortcutsStore, formatShortcut, type ShortcutAction } from "@/store/use-shortcuts-store";
-import { useEditorStore } from "@/store/use-editor";
+type Vec2 = { x: number; y: number };
+type PathNode = { id: string; pos: Vec2; type: "anchor" | "smooth"; cp1?: Vec2; cp2?: Vec2; };
+type VShape = { id: string; name: string; type: "path" | "rect" | "ellipse" | "text"; fill: string; stroke: string; strokeWidth: number; opacity: number; nodes?: PathNode[]; closed?: boolean; x?: number; y?: number; width?: number; height?: number; rx?: number; cx?: number; cy?: number; rx2?: number; ry?: number; text?: string; fontSize?: number; fontFamily?: string; tx?: number; ty?: number; };
+type VTool = "select" | "pen" | "rect" | "ellipse" | "text" | "move";
 
-const DEFAULT_CANVAS_WIDTH = 1200;
-const DEFAULT_CANVAS_HEIGHT = 800;
+const SVG_W = 800;
+const SVG_H = 600;
 
-type VectorTool = "select" | "rectangle" | "ellipse" | "path" | "text";
+function genId() { return "v" + Date.now() + Math.random().toString(36).slice(2, 6); }
+
+function pathD(nodes: PathNode[], closed: boolean): string {
+  if (nodes.length === 0) return "";
+  let d = "M " + nodes[0].pos.x + " " + nodes[0].pos.y;
+  for (let i = 1; i < nodes.length; i++) {
+    const prev = nodes[i - 1]; const cur = nodes[i];
+    const cp1 = prev.cp2 ? { x: prev.pos.x + prev.cp2.x, y: prev.pos.y + prev.cp2.y } : prev.pos;
+    const cp2 = cur.cp1 ? { x: cur.pos.x + cur.cp1.x, y: cur.pos.y + cur.cp1.y } : cur.pos;
+    d += " C " + cp1.x + " " + cp1.y + " " + cp2.x + " " + cp2.y + " " + cur.pos.x + " " + cur.pos.y;
+  }
+  if (closed && nodes.length > 1) { d += " Z"; }
+  return d;
+}
 
 export function VectorEditor() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const fabricRef = useRef<Canvas | null>(null);
-  const [activeTool, setActiveTool] = useState<VectorTool>("select");
-  const [fillColor, setFillColor] = useState("#a855f7"); // default purple
-  const [strokeColor, setStrokeColor] = useState("#ffffff");
-  const [strokeWidth, setStrokeWidth] = useState(2);
-  const [opacity, setOpacity] = useState(1);
-  const [layers, setLayers] = useState<{ id: string; name: string; type: string }[]>([]);
-  const [selectedLayerId, setSelectedLayerId] = useState<string | null>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
+  const [shapes, setShapes] = useState<VShape[]>([]);
+  const [selected, setSelected] = useState<string | null>(null);
+  const [tool, setTool] = useState<VTool>("select");
+  const [zoom, setZoom] = useState(100);
+  const [pan, setPan] = useState<Vec2>({ x: 0, y: 0 });
+  const [penNodes, setPenNodes] = useState<PathNode[]>([]);
+  const [drawing, setDrawing] = useState(false);
+  const [dragging, setDragging] = useState<{ shapeId: string; startMouse: Vec2; startPos: Vec2 } | null>(null);
+  const [history, setHistory] = useState<VShape[][]>([[]]);
+  const [histIdx, setHistIdx] = useState(0);
+  const isPanning = useRef(false);
+  const lastPan = useRef<Vec2>({ x: 0, y: 0 });
+  const selectedShape = shapes.find(s => s.id === selected) ?? null;
 
-  const [canUndo, setCanUndo] = useState(false);
-  const [canRedo, setCanRedo] = useState(false);
-  const historyRef = useRef<string[]>([]);
-  const historyIndexRef = useRef(-1);
+  const pushHistory = useCallback((next: VShape[]) => {
+    setHistory(h => [...h.slice(0, histIdx + 1), next]);
+    setHistIdx(i => i + 1);
+    setShapes(next);
+  }, [histIdx]);
 
-  // キャンバスの初期化
-  useEffect(() => {
-    if (!canvasRef.current || fabricRef.current) return;
+  const undo = useCallback(() => {
+    if (histIdx <= 0) return;
+    setHistIdx(i => { setShapes(history[i - 1]); return i - 1; });
+  }, [histIdx, history]);
 
-    const canvas = new Canvas(canvasRef.current, {
-      width: DEFAULT_CANVAS_WIDTH,
-      height: DEFAULT_CANVAS_HEIGHT,
-      backgroundColor: "#1e1e2e", // 暗めのプレミアム背景
-      selection: true,
-      preserveObjectStacking: true,
-    });
+  const redo = useCallback(() => {
+    if (histIdx >= history.length - 1) return;
+    setHistIdx(i => { setShapes(history[i + 1]); return i + 1; });
+  }, [histIdx, history]);
 
-    fabricRef.current = canvas;
-    saveHistory();
+  const svgPoint = useCallback((e: React.MouseEvent): Vec2 => {
+    const svg = svgRef.current;
+    if (!svg) return { x: 0, y: 0 };
+    const rect = svg.getBoundingClientRect();
+    const scale = zoom / 100;
+    return { x: (e.clientX - rect.left - pan.x) / scale, y: (e.clientY - rect.top - pan.y) / scale };
+  }, [zoom, pan]);
 
-    const onChange = () => {
-      syncLayers();
-      saveHistory();
-    };
-
-    canvas.on("object:added", onChange);
-    canvas.on("object:removed", onChange);
-    canvas.on("object:modified", onChange);
-
-    canvas.on("selection:created", (e) => {
-      const active = e.selected?.[0];
-      if (active) {
-        setSelectedLayerId(getObjectId(active));
-        setFillColor(typeof active.fill === "string" ? active.fill : "#ffffff");
-        setStrokeColor(typeof active.stroke === "string" ? active.stroke : "#ffffff");
-        setStrokeWidth(active.strokeWidth || 0);
-        setOpacity(active.opacity || 1);
-      }
-    });
-
-    canvas.on("selection:cleared", () => {
-      setSelectedLayerId(null);
-    });
-
-    return () => {
-      canvas.dispose();
-      fabricRef.current = null;
-    };
-  }, []);
-
-  // 履歴保存
-  const saveHistory = useCallback(() => {
-    const canvas = fabricRef.current;
-    if (!canvas) return;
-    const json = JSON.stringify(canvas.toObject());
-    const history = historyRef.current.slice(0, historyIndexRef.current + 1);
-    history.push(json);
-    historyRef.current = history.slice(-30);
-    historyIndexRef.current = historyRef.current.length - 1;
-    setCanUndo(historyIndexRef.current > 0);
-    setCanRedo(false);
-  }, []);
-
-  const handleUndo = useCallback(() => {
-    if (historyIndexRef.current <= 0) return;
-    const canvas = fabricRef.current;
-    if (!canvas) return;
-    historyIndexRef.current -= 1;
-    const json = historyRef.current[historyIndexRef.current];
-    canvas.loadFromJSON(json).then(() => {
-      canvas.renderAll();
-      syncLayers();
-      setCanUndo(historyIndexRef.current > 0);
-      setCanRedo(true);
-    });
-  }, []);
-
-  const handleRedo = useCallback(() => {
-    if (historyIndexRef.current >= historyRef.current.length - 1) return;
-    const canvas = fabricRef.current;
-    if (!canvas) return;
-    historyIndexRef.current += 1;
-    const json = historyRef.current[historyIndexRef.current];
-    canvas.loadFromJSON(json).then(() => {
-      canvas.renderAll();
-      syncLayers();
-      setCanUndo(true);
-      setCanRedo(historyIndexRef.current < historyRef.current.length - 1);
-    });
-  }, []);
-
-  // オブジェクトにIDや名前を割り当てるためのヘルパー
-  const getObjectId = (obj: any): string => {
-    if (!obj.data) obj.data = {};
-    if (!obj.data.id) obj.data.id = `vector-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    return obj.data.id;
-  };
-
-  const getObjectName = (obj: any): string => {
-    if (!obj.data) obj.data = {};
-    if (!obj.data.name) {
-      const count = (fabricRef.current?.getObjects().filter((o) => o.type === obj.type).length || 0);
-      obj.data.name = `${obj.type === "rect" ? "長方形" : obj.type === "circle" ? "楕円" : obj.type === "path" ? "パス" : "テキスト"} ${count}`;
+  const handleSvgDown = useCallback((e: React.MouseEvent) => {
+    if (e.button === 1 || (e.button === 0 && e.altKey)) {
+      isPanning.current = true; lastPan.current = { x: e.clientX, y: e.clientY }; return;
     }
-    return obj.data.name;
-  };
+    const pt = svgPoint(e);
+    if (tool === "pen") {
+      const node: PathNode = { id: genId(), pos: pt, type: "anchor", cp2: { x: 0, y: 0 } };
+      if (!drawing) { setPenNodes([node]); setDrawing(true); } else { setPenNodes(prev => [...prev, node]); }
+      return;
+    }
+    if (tool === "rect") { const s: VShape = { id: genId(), name: "矩形", type: "rect", fill: "#1473e6", stroke: "none", strokeWidth: 0, opacity: 1, x: pt.x, y: pt.y, width: 100, height: 80, rx: 0 }; pushHistory([...shapes, s]); setSelected(s.id); setTool("select"); return; }
+    if (tool === "ellipse") { const s: VShape = { id: genId(), name: "楕円", type: "ellipse", fill: "#e34850", stroke: "none", strokeWidth: 0, opacity: 1, cx: pt.x, cy: pt.y, rx2: 60, ry: 40 }; pushHistory([...shapes, s]); setSelected(s.id); setTool("select"); return; }
+    if (tool === "text") { const s: VShape = { id: genId(), name: "テキスト", type: "text", fill: "#000", stroke: "none", strokeWidth: 0, opacity: 1, text: "テキスト", fontSize: 32, fontFamily: "Inter", tx: pt.x, ty: pt.y }; pushHistory([...shapes, s]); setSelected(s.id); setTool("select"); return; }
+  }, [tool, svgPoint, drawing, shapes, pushHistory]);
 
-  // レイヤー一覧の同期
-  const syncLayers = useCallback(() => {
-    const canvas = fabricRef.current;
-    if (!canvas) return;
-    const objects = canvas.getObjects();
-    const list = objects.map((obj) => ({
-      id: getObjectId(obj),
-      name: getObjectName(obj),
-      type: obj.type || "unknown",
-    })).reverse();
-    setLayers(list);
+  const handleSvgMove = useCallback((e: React.MouseEvent) => {
+    if (isPanning.current) { const dx = e.clientX - lastPan.current.x; const dy = e.clientY - lastPan.current.y; lastPan.current = { x: e.clientX, y: e.clientY }; setPan(p => ({ x: p.x + dx, y: p.y + dy })); return; }
+    if (dragging) {
+      const pt = svgPoint(e); const dx = pt.x - dragging.startMouse.x; const dy = pt.y - dragging.startMouse.y;
+      setShapes(prev => prev.map(s => {
+        if (s.id !== dragging.shapeId) return s;
+        if (s.type === "rect") return { ...s, x: dragging.startPos.x + dx, y: dragging.startPos.y + dy };
+        if (s.type === "ellipse") return { ...s, cx: dragging.startPos.x + dx, cy: dragging.startPos.y + dy };
+        if (s.type === "text") return { ...s, tx: dragging.startPos.x + dx, ty: dragging.startPos.y + dy };
+        if (s.type === "path" && s.nodes) return { ...s, nodes: s.nodes.map(n => ({ ...n, pos: { x: n.pos.x + dx, y: n.pos.y + dy } })) };
+        return s;
+      }));
+    }
+  }, [dragging, svgPoint]);
+
+  const handleSvgUp = useCallback(() => {
+    isPanning.current = false;
+    if (dragging) { pushHistory(shapes); setDragging(null); }
+  }, [dragging, shapes, pushHistory]);
+
+  const commitPen = useCallback(() => {
+    if (penNodes.length < 2) { setPenNodes([]); setDrawing(false); return; }
+    const s: VShape = { id: genId(), name: "パス", type: "path", fill: "none", stroke: "#1473e6", strokeWidth: 2, opacity: 1, nodes: penNodes, closed: false };
+    pushHistory([...shapes, s]); setSelected(s.id); setPenNodes([]); setDrawing(false); setTool("select");
+  }, [penNodes, shapes, pushHistory]);
+
+  const deleteSelected = useCallback(() => {
+    if (!selected) return;
+    pushHistory(shapes.filter(s => s.id !== selected)); setSelected(null);
+  }, [selected, shapes, pushHistory]);
+
+  const exportSvg = useCallback(() => {
+    const svg = svgRef.current; if (!svg) return;
+    const clone = svg.cloneNode(true) as SVGSVGElement; clone.removeAttribute("style");
+    const blob = new Blob([clone.outerHTML], { type: "image/svg+xml" });
+    const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = "vector.svg"; a.click(); URL.revokeObjectURL(url);
   }, []);
 
-  // ツール変更
-  useEffect(() => {
-    const canvas = fabricRef.current;
-    if (!canvas) return;
+  const updateSelected = useCallback((patch: Partial<VShape>) => {
+    setShapes(prev => prev.map(s => s.id === selected ? { ...s, ...patch } : s));
+  }, [selected]);
 
-    canvas.isDrawingMode = activeTool === "path";
-    if (activeTool === "path") {
-      const brush = new PencilBrush(canvas);
-      brush.color = fillColor;
-      brush.width = strokeWidth || 2;
-      canvas.freeDrawingBrush = brush;
-    } else {
-      canvas.selection = activeTool === "select";
-      canvas.getObjects().forEach((o) => {
-        o.selectable = activeTool === "select";
-      });
-      canvas.requestRenderAll();
-    }
-  }, [activeTool, fillColor, strokeWidth]);
+  const scale = zoom / 100;
+  const inp = "w-full rounded border border-[var(--lumina-border)] bg-[var(--lumina-bg)] px-2 py-1 text-[11px] text-[var(--lumina-text)] outline-none focus:border-[var(--lumina-accent)]";
 
-  // キーボードショートカット
-  const shortcuts = useShortcutsStore((s) => s.shortcuts);
+  const TOOLS: { id: VTool; icon: React.ReactNode; label: string; key: string }[] = [
+    { id: "select", icon: <MousePointer2 className="h-4 w-4" />, label: "選択", key: "V" },
+    { id: "move", icon: <Move className="h-4 w-4" />, label: "移動", key: "H" },
+    { id: "pen", icon: <Pen className="h-4 w-4" />, label: "ペン", key: "P" },
+    { id: "rect", icon: <Square className="h-4 w-4" />, label: "矩形", key: "R" },
+    { id: "ellipse", icon: <Circle className="h-4 w-4" />, label: "楕円", key: "E" },
+    { id: "text", icon: <Type className="h-4 w-4" />, label: "テキスト", key: "T" },
+  ];
+
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
+    const h = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
-
-      const rawKey = e.key.toLowerCase();
-      const ctrlOrMeta = e.ctrlKey || e.metaKey;
-      const shift = e.shiftKey;
-      const alt = e.altKey;
-
-      const matched = Object.values(shortcuts).find(
-        (s) =>
-          s.key === rawKey &&
-          s.ctrlOrMeta === ctrlOrMeta &&
-          s.shift === shift &&
-          s.alt === alt
-      );
-
-      if (!matched) return;
-      e.preventDefault();
-
-      if (matched.action === "undo") handleUndo();
-      else if (matched.action === "redo") handleRedo();
-      else if (["select", "brush", "eraser", "text", "rectangle", "ellipse"].includes(matched.action)) {
-        // ベクターに適合するツールに切り替え
-        if (matched.action === "select") setActiveTool("select");
-        else if (matched.action === "brush") setActiveTool("path");
-        else if (matched.action === "text") setActiveTool("text");
-        else if (matched.action === "rectangle") setActiveTool("rectangle");
-        else if (matched.action === "ellipse") setActiveTool("ellipse");
-      }
+      const k = e.key.toLowerCase();
+      if (k==="v") setTool("select"); if (k==="h") setTool("move"); if (k==="p") setTool("pen");
+      if (k==="r") setTool("rect"); if (k==="e") setTool("ellipse"); if (k==="t") setTool("text");
+      if (k==="enter" && tool==="pen" && drawing) commitPen();
+      if (k==="escape" && drawing) { setPenNodes([]); setDrawing(false); }
+      if ((k==="delete" || k==="backspace") && selected) deleteSelected();
+      if ((e.metaKey || e.ctrlKey) && k==="z") { e.shiftKey ? redo() : undo(); e.preventDefault(); }
     };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [shortcuts, handleUndo, handleRedo]);
-
-  // キャンバスクリック時のオブジェクト追加
-  const handleCanvasClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    const canvas = fabricRef.current;
-    if (!canvas || activeTool === "select" || activeTool === "path") return;
-
-    const rect = canvas.getElement().getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
-    let obj: FabricObject | null = null;
-
-    if (activeTool === "rectangle") {
-      obj = new Rect({
-        left: x - 50,
-        top: y - 50,
-        width: 100,
-        height: 100,
-        fill: fillColor,
-        stroke: strokeColor,
-        strokeWidth: strokeWidth,
-        opacity: opacity,
-      });
-    } else if (activeTool === "ellipse") {
-      obj = new Circle({
-        left: x - 50,
-        top: y - 50,
-        radius: 50,
-        fill: fillColor,
-        stroke: strokeColor,
-        strokeWidth: strokeWidth,
-        opacity: opacity,
-      });
-    } else if (activeTool === "text") {
-      obj = new IText("テキスト", {
-        left: x - 40,
-        top: y - 15,
-        fill: fillColor,
-        fontSize: 32,
-        opacity: opacity,
-      });
-    }
-
-    if (obj) {
-      canvas.add(obj);
-      canvas.setActiveObject(obj);
-      canvas.renderAll();
-      setActiveTool("select"); // 追加後は移動ツールに戻す
-    }
-  };
-
-  // プロパティ変更の適用
-  const updateActiveObject = (props: Record<string, any>) => {
-    const canvas = fabricRef.current;
-    if (!canvas) return;
-    const active = canvas.getActiveObject();
-    if (active) {
-      active.set(props);
-      canvas.requestRenderAll();
-      saveHistory();
-    }
-  };
-
-  // 整列
-  const handleAlign = (type: "left" | "center" | "right") => {
-    const canvas = fabricRef.current;
-    if (!canvas) return;
-    const active = canvas.getActiveObject();
-    if (!active) return;
-
-    // 複数選択の場合
-    if (active.type === "activeSelection") {
-      const selection = active as any;
-      const bounds = selection.getBoundingRect();
-
-      selection.getObjects().forEach((obj: any) => {
-        if (type === "left") {
-          obj.set("left", -selection.width / 2);
-        } else if (type === "center") {
-          obj.set("left", 0 - (obj.width * obj.scaleX) / 2);
-        } else if (type === "right") {
-          obj.set("left", selection.width / 2 - obj.width * obj.scaleX);
-        }
-        obj.setCoords();
-      });
-      canvas.requestRenderAll();
-      saveHistory();
-    }
-  };
-
-  // グループ化 / 解除
-  const handleGroup = () => {
-    const canvas = fabricRef.current;
-    if (!canvas) return;
-    const active = canvas.getActiveObject();
-    if (active && active.type === "activeSelection") {
-      (active as any).toGroup();
-      canvas.requestRenderAll();
-      syncLayers();
-      saveHistory();
-    }
-  };
-
-  const handleUngroup = () => {
-    const canvas = fabricRef.current;
-    if (!canvas) return;
-    const active = canvas.getActiveObject();
-    if (active && active.type === "group") {
-      (active as any).toActiveSelection();
-      canvas.requestRenderAll();
-      syncLayers();
-      saveHistory();
-    }
-  };
-
-  // SVG エクスポート
-  const exportSVG = () => {
-    const canvas = fabricRef.current;
-    if (!canvas) return;
-    const svgStr = canvas.toSVG();
-    const blob = new Blob([svgStr], { type: "image/svg+xml" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = "vector-design.svg";
-    link.click();
-    URL.revokeObjectURL(url);
-  };
-
-  // オブジェクトの削除
-  const handleDelete = () => {
-    const canvas = fabricRef.current;
-    if (!canvas) return;
-    const active = canvas.getActiveObject();
-    if (active) {
-      if (active.type === "activeSelection") {
-        (active as any).getObjects().forEach((o: any) => canvas.remove(o));
-      } else {
-        canvas.remove(active);
-      }
-      canvas.discardActiveObject();
-      canvas.renderAll();
-      syncLayers();
-    }
-  };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, [tool, drawing, selected, commitPen, deleteSelected, undo, redo]);
 
   return (
-    <div className="flex h-full flex-col bg-[#11111b] text-lumina-text select-none">
-      {/* メニューバー */}
-      <header className="flex h-12 shrink-0 items-center justify-between border-b border-lumina-border bg-[#181825] px-4 shadow-md">
-        <div className="flex items-center gap-6">
-          <div className="flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded bg-gradient-to-br from-purple-600 to-indigo-600 text-xs font-bold text-white">Ve</div>
-            <span className="text-sm font-semibold tracking-tight">Editional Vector</span>
-          </div>
-          {/* 操作ボタン */}
-          <div className="flex items-center gap-1.5 border-l border-lumina-border pl-6">
-            <button
-              onClick={handleUndo}
-              disabled={!canUndo}
-              className="rounded p-1.5 transition hover:bg-lumina-bg-hover disabled:opacity-40"
-              title="元に戻す"
-            >
-              <Undo2 className="h-4 w-4" />
-            </button>
-            <button
-              onClick={handleRedo}
-              disabled={!canRedo}
-              className="rounded p-1.5 transition hover:bg-lumina-bg-hover disabled:opacity-40"
-              title="やり直し"
-            >
-              <Redo2 className="h-4 w-4" />
-            </button>
-          </div>
+    <div className="flex h-full flex-col bg-[var(--lumina-bg)]">
+      {/* ヘッダー */}
+      <div className="flex h-10 items-center justify-between border-b border-[var(--lumina-border)] bg-[var(--lumina-bg-panel)] px-4">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-semibold text-[var(--lumina-text)]">Editional Vector</span>
+          <span className="rounded bg-[var(--lumina-accent)]/20 px-1.5 py-0.5 text-[10px] text-[var(--lumina-accent)]">Beta</span>
         </div>
-
-        <div className="flex items-center gap-3">
-          <button
-            onClick={exportSVG}
-            className="flex items-center gap-1.5 rounded bg-purple-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-purple-700 shadow-md"
-          >
-            <Download className="h-3.5 w-3.5" />
-            <span>SVGエクスポート</span>
-          </button>
+        <div className="flex items-center gap-1">
+          <button type="button" onClick={undo} disabled={histIdx<=0} className="rounded p-1.5 text-[var(--lumina-text-muted)] hover:bg-[var(--lumina-bg-hover)] disabled:opacity-40"><Undo2 className="h-3.5 w-3.5" /></button>
+          <button type="button" onClick={redo} disabled={histIdx>=history.length-1} className="rounded p-1.5 text-[var(--lumina-text-muted)] hover:bg-[var(--lumina-bg-hover)] disabled:opacity-40"><Redo2 className="h-3.5 w-3.5" /></button>
+          <span className="mx-1 h-4 w-px bg-[var(--lumina-border)]" />
+          <button type="button" onClick={() => setZoom(z => Math.max(25, z-10))} className="rounded p-1.5 text-[var(--lumina-text-muted)] hover:bg-[var(--lumina-bg-hover)]"><ZoomOut className="h-3.5 w-3.5" /></button>
+          <span className="w-12 text-center text-xs text-[var(--lumina-text-muted)]">{zoom}%</span>
+          <button type="button" onClick={() => setZoom(z => Math.min(400, z+10))} className="rounded p-1.5 text-[var(--lumina-text-muted)] hover:bg-[var(--lumina-bg-hover)]"><ZoomIn className="h-3.5 w-3.5" /></button>
+          <span className="mx-1 h-4 w-px bg-[var(--lumina-border)]" />
+          <button type="button" onClick={exportSvg} className="flex items-center gap-1 rounded bg-[var(--lumina-accent)] px-3 py-1 text-xs text-white hover:opacity-90"><Download className="h-3 w-3" />SVG書き出し</button>
         </div>
-      </header>
+      </div>
 
-      {/* メインエリア */}
       <div className="flex flex-1 overflow-hidden">
-        {/* 左側ツールバー */}
-        <aside className="flex w-12 shrink-0 flex-col items-center gap-1 border-r border-lumina-border bg-[#181825] py-2">
-          {[
-            { id: "select", icon: <MousePointer2 className="h-4 w-4" />, label: "選択・移動" },
-            { id: "rectangle", icon: <Square className="h-4 w-4" />, label: "長方形" },
-            { id: "ellipse", icon: <CircleIcon className="h-4 w-4" />, label: "楕円" },
-            { id: "path", icon: <Plus className="h-4 w-4" />, label: "パス描画" },
-            { id: "text", icon: <Type className="h-4 w-4" />, label: "テキスト" },
-          ].map((tool) => (
-            <button
-              key={tool.id}
-              onClick={() => setActiveTool(tool.id as VectorTool)}
-              className={`flex h-9 w-9 items-center justify-center rounded transition ${
-                activeTool === tool.id
-                  ? "bg-purple-600/20 text-purple-400 border border-purple-500/30"
-                  : "text-lumina-text-muted hover:bg-lumina-bg-hover hover:text-lumina-text"
-              }`}
-              title={tool.label}
-            >
-              {tool.icon}
-            </button>
+        {/* ツールバー */}
+        <div className="flex w-12 flex-col items-center gap-1 border-r border-[var(--lumina-border)] bg-[var(--lumina-bg-panel)] py-2">
+          {TOOLS.map(t => (
+            <button key={t.id} type="button" onClick={() => { setTool(t.id); if(drawing){setPenNodes([]);setDrawing(false);} }} title={t.label+" ("+t.key+")"} className={"rounded p-2 transition "+(tool===t.id?"bg-[var(--lumina-accent)]/20 text-[var(--lumina-accent)]":"text-[var(--lumina-text-muted)] hover:bg-[var(--lumina-bg-hover)]")}>{t.icon}</button>
           ))}
-        </aside>
-
-        {/* キャンバスエリア */}
-        <div
-          className="relative flex flex-1 items-center justify-center overflow-auto bg-[#0f0f16] p-8"
-          onClick={handleCanvasClick}
-        >
-          <div className="border border-lumina-border/60 shadow-2xl shadow-black/80">
-            <canvas ref={canvasRef} />
-          </div>
+          <span className="my-1 h-px w-8 bg-[var(--lumina-border)]" />
+          <button type="button" onClick={deleteSelected} disabled={!selected} title="削除" className="rounded p-2 text-[var(--lumina-text-muted)] hover:bg-[var(--lumina-danger)]/20 hover:text-[var(--lumina-danger)] disabled:opacity-30"><Trash2 className="h-4 w-4" /></button>
         </div>
 
-        {/* 右側パネル */}
-        <aside className="flex w-64 shrink-0 flex-col border-l border-lumina-border bg-[#181825]">
-          {/* プロパティセクション */}
-          <div className="border-b border-lumina-border p-4">
-            <h3 className="mb-3 text-[11px] font-bold uppercase tracking-wider text-lumina-text-muted">オブジェクト設定</h3>
+        {/* キャンバス */}
+        <div className="relative flex flex-1 items-center justify-center overflow-hidden bg-[var(--lumina-canvas-bg)]" style={{ cursor: tool==="pen"?"crosshair":tool==="move"?"grab":"default" }}>
+          <svg ref={svgRef} width={SVG_W*scale} height={SVG_H*scale} viewBox={"0 0 "+SVG_W+" "+SVG_H} style={{ transform: "translate("+pan.x+"px,"+pan.y+"px)", background: "#fff", boxShadow: "0 4px 32px rgba(0,0,0,0.3)" }} onMouseDown={handleSvgDown} onMouseMove={handleSvgMove} onMouseUp={handleSvgUp}>
+            {shapes.map(s => {
+              const sel = s.id===selected;
+              const ss = sel?{outline:"2px solid #1473e6"}:{};
+              const cp = { key:s.id, opacity:s.opacity, onMouseDown:(e:React.MouseEvent)=>{ if(tool!=="select")return; e.stopPropagation(); setSelected(s.id); const pt=svgPoint(e); const sp=s.type==="rect"?{x:s.x!,y:s.y!}:s.type==="ellipse"?{x:s.cx!,y:s.cy!}:s.type==="text"?{x:s.tx!,y:s.ty!}:{x:0,y:0}; setDragging({shapeId:s.id,startMouse:pt,startPos:sp}); } };
+              if(s.type==="rect") return <rect {...cp} x={s.x} y={s.y} width={s.width} height={s.height} rx={s.rx} fill={s.fill} stroke={s.stroke} strokeWidth={s.strokeWidth} style={ss}/>;
+              if(s.type==="ellipse") return <ellipse {...cp} cx={s.cx} cy={s.cy} rx={s.rx2} ry={s.ry} fill={s.fill} stroke={s.stroke} strokeWidth={s.strokeWidth} style={ss}/>;
+              if(s.type==="text") return <text {...cp} x={s.tx} y={s.ty} fill={s.fill} fontSize={s.fontSize} fontFamily={s.fontFamily} style={ss}>{s.text}</text>;
+              if(s.type==="path"&&s.nodes) return <path {...cp} d={pathD(s.nodes,s.closed??false)} fill={s.fill} stroke={s.stroke} strokeWidth={s.strokeWidth} style={ss}/>;
+              return null;
+            })}
+            {drawing&&penNodes.length>0&&<path d={pathD(penNodes,false)} fill="none" stroke="#1473e6" strokeWidth={1.5} strokeDasharray="4 2" pointerEvents="none" />}
+            {penNodes.map(n=><circle key={n.id} cx={n.pos.x} cy={n.pos.y} r={4} fill="#fff" stroke="#1473e6" strokeWidth={1.5} pointerEvents="none" />)}
+          </svg>
+          {drawing&&<div className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded bg-black/70 px-3 py-1 text-xs text-white">クリック: ノード追加 / Enter: 確定 / Esc: キャンセル ({penNodes.length})</div>}
+        </div>
 
-            <div className="space-y-4">
-              {/* 塗り */}
-              <div>
-                <label className="mb-1 block text-[10px] text-lumina-text-muted">塗りつぶし色</label>
-                <div className="flex gap-2">
-                  <input
-                    type="color"
-                    value={fillColor}
-                    onChange={(e) => {
-                      setFillColor(e.target.value);
-                      updateActiveObject({ fill: e.target.value });
-                    }}
-                    className="h-8 w-12 cursor-pointer rounded border border-lumina-border bg-transparent p-0.5"
-                  />
-                  <input
-                    type="text"
-                    value={fillColor}
-                    onChange={(e) => {
-                      setFillColor(e.target.value);
-                      updateActiveObject({ fill: e.target.value });
-                    }}
-                    className="flex-1 rounded border border-lumina-border bg-[#1e1e2e] px-2 text-xs"
-                  />
-                </div>
-              </div>
-
-              {/* 線 */}
-              <div>
-                <label className="mb-1 block text-[10px] text-lumina-text-muted">枠線</label>
-                <div className="flex gap-2">
-                  <input
-                    type="color"
-                    value={strokeColor}
-                    onChange={(e) => {
-                      setStrokeColor(e.target.value);
-                      updateActiveObject({ stroke: e.target.value });
-                    }}
-                    className="h-8 w-12 cursor-pointer rounded border border-lumina-border bg-transparent p-0.5"
-                  />
-                  <input
-                    type="text"
-                    value={strokeColor}
-                    onChange={(e) => {
-                      setStrokeColor(e.target.value);
-                      updateActiveObject({ stroke: e.target.value });
-                    }}
-                    className="flex-1 rounded border border-lumina-border bg-[#1e1e2e] px-2 text-xs"
-                  />
-                </div>
-              </div>
-
-              {/* 枠線太さ */}
-              <div>
-                <div className="mb-1 flex justify-between text-[10px] text-lumina-text-muted">
-                  <span>枠線の太さ</span>
-                  <span>{strokeWidth}px</span>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="20"
-                  value={strokeWidth}
-                  onChange={(e) => {
-                    const val = parseInt(e.target.value);
-                    setStrokeWidth(val);
-                    updateActiveObject({ strokeWidth: val });
-                  }}
-                  className="w-full accent-purple-600"
-                />
-              </div>
-
-              {/* 不透明度 */}
-              <div>
-                <div className="mb-1 flex justify-between text-[10px] text-lumina-text-muted">
-                  <span>不透明度</span>
-                  <span>{Math.round(opacity * 100)}%</span>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="1"
-                  step="0.05"
-                  value={opacity}
-                  onChange={(e) => {
-                    const val = parseFloat(e.target.value);
-                    setOpacity(val);
-                    updateActiveObject({ opacity: val });
-                  }}
-                  className="w-full accent-purple-600"
-                />
-              </div>
-
-              {/* グループ化と整列 */}
-              <div className="border-t border-lumina-border/60 pt-4">
-                <label className="mb-2 block text-[10px] text-lumina-text-muted">整列・グループ</label>
-                <div className="flex gap-1.5">
-                  <button
-                    onClick={() => handleAlign("left")}
-                    className="flex-1 rounded border border-lumina-border bg-[#1e1e2e] py-1.5 hover:bg-lumina-bg-hover text-xs flex justify-center"
-                    title="左揃え"
-                  >
-                    <AlignLeft className="h-3.5 w-3.5" />
-                  </button>
-                  <button
-                    onClick={() => handleAlign("center")}
-                    className="flex-1 rounded border border-lumina-border bg-[#1e1e2e] py-1.5 hover:bg-lumina-bg-hover text-xs flex justify-center"
-                    title="中央揃え"
-                  >
-                    <AlignCenter className="h-3.5 w-3.5" />
-                  </button>
-                  <button
-                    onClick={() => handleAlign("right")}
-                    className="flex-1 rounded border border-lumina-border bg-[#1e1e2e] py-1.5 hover:bg-lumina-bg-hover text-xs flex justify-center"
-                    title="右揃え"
-                  >
-                    <AlignRight className="h-3.5 w-3.5" />
-                  </button>
-                </div>
-
-                <div className="mt-2 flex gap-1.5">
-                  <button
-                    onClick={handleGroup}
-                    className="flex-1 rounded border border-lumina-border bg-[#1e1e2e] py-1 text-[10px] hover:bg-lumina-bg-hover"
-                  >
-                    グループ化
-                  </button>
-                  <button
-                    onClick={handleUngroup}
-                    className="flex-1 rounded border border-lumina-border bg-[#1e1e2e] py-1 text-[10px] hover:bg-lumina-bg-hover"
-                  >
-                    解除
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* レイヤーパネルセクション */}
-          <div className="flex flex-1 flex-col overflow-hidden">
-            <div className="flex items-center justify-between border-b border-lumina-border px-4 py-2">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-lumina-text-muted">レイヤー</span>
-              {selectedLayerId && (
-                <button
-                  onClick={handleDelete}
-                  className="rounded p-1 text-red-400 hover:bg-red-500/10"
-                  title="削除"
-                >
-                  <Trash className="h-3.5 w-3.5" />
-                </button>
+        {/* プロパティ */}
+        <div className="flex w-56 shrink-0 flex-col border-l border-[var(--lumina-border)] bg-[var(--lumina-bg-panel)]">
+          <div className="border-b border-[var(--lumina-border)] px-3 py-2 text-[11px] font-semibold uppercase tracking-wide text-[var(--lumina-text-muted)]">プロパティ</div>
+          {selectedShape?(
+            <div className="lumina-scrollbar flex-1 space-y-2 overflow-y-auto p-3">
+              <label className="mb-0.5 block text-[10px] text-[var(--lumina-text-muted)]">名前</label>
+              <input value={selectedShape.name} onChange={e=>updateSelected({name:e.target.value})} className={inp} />
+              <label className="mb-0.5 block text-[10px] text-[var(--lumina-text-muted)]">塗り</label>
+              <div className="flex gap-1"><input type="color" value={selectedShape.fill==="none"?"#000000":selectedShape.fill} onChange={e=>updateSelected({fill:e.target.value})} className="h-6 w-6 cursor-pointer rounded border border-[var(--lumina-border)]" /><input value={selectedShape.fill} onChange={e=>updateSelected({fill:e.target.value})} className={"flex-1 "+inp} /></div>
+              <label className="mb-0.5 block text-[10px] text-[var(--lumina-text-muted)]">線</label>
+              <div className="flex gap-1"><input type="color" value={selectedShape.stroke==="none"?"#000000":selectedShape.stroke} onChange={e=>updateSelected({stroke:e.target.value})} className="h-6 w-6 cursor-pointer rounded border border-[var(--lumina-border)]" /><input value={selectedShape.stroke} onChange={e=>updateSelected({stroke:e.target.value})} className={"flex-1 "+inp} /></div>
+              <label className="mb-0.5 block text-[10px] text-[var(--lumina-text-muted)]">不透明度</label>
+              <input type="range" min={0} max={1} step={0.01} value={selectedShape.opacity} onChange={e=>updateSelected({opacity:Number(e.target.value)})} className="w-full accent-[var(--lumina-accent)]" />
+              {selectedShape.type==="rect"&&<>
+                <label className="mb-0.5 block text-[10px] text-[var(--lumina-text-muted)]">幅</label><input type="number" value={selectedShape.width} onChange={e=>updateSelected({width:Number(e.target.value)})} className={inp} />
+                <label className="mb-0.5 block text-[10px] text-[var(--lumina-text-muted)]">高さ</label><input type="number" value={selectedShape.height} onChange={e=>updateSelected({height:Number(e.target.value)})} className={inp} />
+                <label className="mb-0.5 block text-[10px] text-[var(--lumina-text-muted)]">角丸</label><input type="number" min={0} value={selectedShape.rx} onChange={e=>updateSelected({rx:Number(e.target.value)})} className={inp} />
+              </>}
+              {selectedShape.type==="text"&&<>
+                <label className="mb-0.5 block text-[10px] text-[var(--lumina-text-muted)]">テキスト</label><input value={selectedShape.text} onChange={e=>updateSelected({text:e.target.value})} className={inp} />
+                <label className="mb-0.5 block text-[10px] text-[var(--lumina-text-muted)]">フォントサイズ</label><input type="number" min={6} value={selectedShape.fontSize} onChange={e=>updateSelected({fontSize:Number(e.target.value)})} className={inp} />
+              </>}
+              {selectedShape.type==="path"&&(
+                <><label className="mb-0.5 block text-[10px] text-[var(--lumina-text-muted)]">閉じる</label><input type="checkbox" checked={selectedShape.closed??false} onChange={e=>updateSelected({closed:e.target.checked})} className="accent-[var(--lumina-accent)]" /></>
               )}
             </div>
-
-            <div className="lumina-scrollbar flex-1 overflow-y-auto p-2 space-y-1">
-              {layers.length === 0 ? (
-                <div className="py-8 text-center text-[10px] text-lumina-text-muted">レイヤーがありません</div>
-              ) : (
-                layers.map((layer) => (
-                  <div
-                    key={layer.id}
-                    onClick={() => {
-                      const canvas = fabricRef.current;
-                      if (!canvas) return;
-                      const target = canvas.getObjects().find((o) => getObjectId(o) === layer.id);
-                      if (target) {
-                        canvas.setActiveObject(target);
-                        canvas.renderAll();
-                        setSelectedLayerId(layer.id);
-                      }
-                    }}
-                    className={`flex items-center justify-between rounded px-2.5 py-1.5 text-xs transition cursor-pointer ${
-                      selectedLayerId === layer.id
-                        ? "bg-purple-600/15 border border-purple-500/30 text-purple-200"
-                        : "hover:bg-lumina-bg-hover text-lumina-text-muted hover:text-lumina-text"
-                    }`}
-                  >
-                    <span className="truncate">{layer.name}</span>
-                    <span className="text-[9px] uppercase opacity-40 font-mono">{layer.type}</span>
-                  </div>
-                ))
-              )}
+          ):(<div className="p-3 text-[11px] text-[var(--lumina-text-muted)]">シェイプを選択してください</div>)}
+          {/* レイヤー */}
+          <div className="border-t border-[var(--lumina-border)]">
+            <div className="px-3 py-1.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--lumina-text-muted)]">レイヤー ({shapes.length})</div>
+            <div className="lumina-scrollbar max-h-40 overflow-y-auto">
+              {[...shapes].reverse().map(s=>(
+                <div key={s.id} onClick={()=>setSelected(s.id)} className={"flex cursor-pointer items-center gap-2 px-3 py-1.5 text-[11px] transition "+(selected===s.id?"bg-[var(--lumina-accent)]/15 text-[var(--lumina-text)]":"text-[var(--lumina-text-muted)] hover:bg-[var(--lumina-bg-hover)]")}><span className="text-[9px] uppercase opacity-60">{s.type}</span><span className="flex-1 truncate">{s.name}</span></div>
+              ))}
             </div>
           </div>
-        </aside>
+        </div>
       </div>
     </div>
   );
