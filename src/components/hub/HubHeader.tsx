@@ -1,14 +1,23 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useSubscription } from "@/store/use-subscription";
+import { useAuth } from "@/store/use-auth";
 import { ProjectBrowserModal } from "@/components/hub/ProjectBrowserModal";
-import { Crown, Cloud, Bell, User } from "lucide-react";
+import { AuthModal } from "@/components/hub/AuthModal";
+import { Crown, Cloud, Bell, User, LogOut } from "lucide-react";
 
 export function HubHeader() {
   const tier = useSubscription((s) => s.tier);
+  const user = useAuth((s) => s.user);
+  const loading = useAuth((s) => s.loading);
+  const init = useAuth((s) => s.init);
+  const signOut = useAuth((s) => s.signOut);
   const [showProjects, setShowProjects] = useState(false);
+  const [showAuth, setShowAuth] = useState(false);
+
+  useEffect(() => init(), [init]);
 
   return (
     <>
@@ -64,16 +73,40 @@ export function HubHeader() {
           >
             <Bell className="h-4 w-4" />
           </button>
-          <button
-            type="button"
-            className="rounded p-1.5 text-lumina-text-muted transition hover:bg-lumina-bg-hover hover:text-lumina-text"
-            aria-label="アカウント"
-          >
-            <User className="h-4 w-4" />
-          </button>
+          {user ? (
+            <div className="flex items-center gap-1">
+              <span
+                className="hidden max-w-28 truncate text-[10px] text-lumina-text-muted sm:inline"
+                title={user.email ?? undefined}
+              >
+                {user.email}
+              </span>
+              <button
+                type="button"
+                onClick={() => void signOut()}
+                className="rounded p-1.5 text-lumina-text-muted transition hover:bg-lumina-bg-hover hover:text-lumina-text"
+                aria-label="ログアウト"
+                title="ログアウト"
+              >
+                <LogOut className="h-4 w-4" />
+              </button>
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setShowAuth(true)}
+              disabled={loading}
+              className="rounded p-1.5 text-lumina-text-muted transition hover:bg-lumina-bg-hover hover:text-lumina-text disabled:opacity-40"
+              aria-label="アカウント"
+              title="ログイン"
+            >
+              <User className="h-4 w-4" />
+            </button>
+          )}
         </div>
       </header>
       <ProjectBrowserModal isOpen={showProjects} onClose={() => setShowProjects(false)} />
+      <AuthModal isOpen={showAuth} onClose={() => setShowAuth(false)} />
     </>
   );
 }

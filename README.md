@@ -80,6 +80,7 @@ Netlify Dashboard → **Site configuration** → **Environment variables** で�
 |---|---|
 | `NEXT_PUBLIC_SUPABASE_URL` | 認証・クラウド同期 |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase クライアント |
+| `EDITIONAL_AGENT_API_KEY` | Agent API キー認証 |
 | `STRIPE_SECRET_KEY` | Pro プラン決済（サーバー側） |
 | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Stripe クライアント |
 
@@ -117,9 +118,9 @@ Netlify の環境変数に `EDITIONAL_AGENT_API_KEY` を設定すると API キ�
 3. [x] フリーミアム制限（レイヤー数、ウォーターマーク）
 4. [x] Agent REST API（Manus 等の外部AI連携）
 5. [x] プロジェクト保存（`.editional.json`）
-6. [x] AI コマンドパレット（Cmd+K）— Vector / Design / Motion / 3D
+6. [x] AI コマンドパレット（Cmd+K）— 全アプリ
 7. [x] クラウドプロジェクトブラウザ（ローカル同期）
-8. [ ] ユーザー認証（Supabase Auth）
+8. [x] ユーザー認証 UI 土台（Supabase Auth）
 9. [ ] クラウド同期・リモートファイル管理
 10. [ ] Stripe 決済連携
 11. [ ] PSD / AI ファイル互換

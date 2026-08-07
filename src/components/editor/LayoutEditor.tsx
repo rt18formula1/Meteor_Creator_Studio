@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import Link from "next/link";
 import {
   Plus,
@@ -20,7 +20,11 @@ import {
   Eye,
   EyeOff,
   ArrowLeft,
+  Sparkles,
+  Folder,
 } from "lucide-react";
+import { AiCommandPalette } from "@/components/agent/AiCommandPalette";
+import { ProjectBrowserModal } from "@/components/hub/ProjectBrowserModal";
 
 interface TextFrame {
   id: string;
@@ -66,8 +70,83 @@ export function LayoutEditor() {
   const [selectedFrameId, setSelectedFrameId] = useState<string | null>(null);
   const [activeTool, setActiveTool] = useState<"select" | "text" | "image">("select");
   const [dragging, setDragging] = useState<{ id: string; type: "text" | "image"; offsetX: number; offsetY: number } | null>(null);
+  const [showAiPalette, setShowAiPalette] = useState(false);
+  const [showProjectBrowser, setShowProjectBrowser] = useState(false);
 
   const currentPage = pages[currentPageIndex];
+
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setShowAiPalette((v) => !v);
+      }
+    };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, []);
+
+  const addTextFrameAt = () => {
+    const updatedPages = [...pages];
+    const page = { ...updatedPages[currentPageIndex] };
+    const newFrame: TextFrame = {
+      id: `tf-${Date.now()}`,
+      x: 60,
+      y: 80 + page.textFrames.length * 30,
+      width: 240,
+      height: 120,
+      text: "AI が追加したテキストフレームです。",
+      fontSize: 12,
+      fontWeight: "normal",
+      textAlign: "left",
+      columns: 1,
+      columnGap: 12,
+    };
+    page.textFrames = [...page.textFrames, newFrame];
+    updatedPages[currentPageIndex] = page;
+    setPages(updatedPages);
+    setSelectedFrameId(newFrame.id);
+  };
+
+  const addImageFrameAt = () => {
+    const updatedPages = [...pages];
+    const page = { ...updatedPages[currentPageIndex] };
+    const newFrame: ImageFrame = {
+      id: `if-${Date.now()}`,
+      x: 80,
+      y: 120 + page.imageFrames.length * 30,
+      width: 160,
+      height: 120,
+      label: `画像 ${page.imageFrames.length + 1}`,
+    };
+    page.imageFrames = [...page.imageFrames, newFrame];
+    updatedPages[currentPageIndex] = page;
+    setPages(updatedPages);
+    setSelectedFrameId(newFrame.id);
+  };
+
+  const runAiCommand = async (prompt: string): Promise<string> => {
+    const t = prompt.toLowerCase();
+    if (t.includes("ページ") || t.includes("page")) {
+      addPage();
+      return "新しいページを追加しました。";
+    }
+    if (t.includes("画像") || t.includes("image")) {
+      addImageFrameAt();
+      return "画像フレームを追加しました。";
+    }
+    if (t.includes("テキスト") || t.includes("文字") || t.includes("text")) {
+      addTextFrameAt();
+      return "テキストフレームを追加しました。";
+    }
+    if (t.includes("グリッド") || t.includes("grid")) {
+      setShowGrid((v) => !v);
+      return "グリッド表示を切り替えました。";
+    }
+    return "例: 「テキストを追加」「ページを追加」「画像フレームを追加」";
+  };
+
 
   // ページ操作
   const addPage = () => {
@@ -260,10 +339,11 @@ export function LayoutEditor() {
 
         <div className="flex items-center gap-2">
           <button
+            type="button"
             onClick={() => setShowGrid(!showGrid)}
-            className={`flex items-center gap-1.5 rounded px-3 py-1.5 text-xs transition border ${
+            className={`flex items-center gap-1.5 rounded border px-3 py-1.5 text-xs transition ${
               showGrid
-                ? "bg-pink-600/15 border-pink-500/30 text-pink-300"
+                ? "border-pink-500/30 bg-pink-600/15 text-pink-300"
                 : "border-lumina-border text-lumina-text-muted hover:bg-lumina-bg-hover"
             }`}
           >
@@ -271,11 +351,28 @@ export function LayoutEditor() {
             <span>グリッド</span>
           </button>
           <button
+            type="button"
             onClick={addPage}
-            className="flex items-center gap-1.5 rounded bg-pink-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-pink-700 shadow-md"
+            className="flex items-center gap-1.5 rounded bg-pink-600 px-3 py-1.5 text-xs font-semibold text-white shadow-md transition hover:bg-pink-700"
           >
             <Plus className="h-3.5 w-3.5" />
             <span>ページ追加</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowAiPalette(true)}
+            className="flex items-center gap-1.5 rounded border border-pink-500/30 bg-pink-600/15 px-3 py-1.5 text-xs font-medium text-pink-300 transition hover:bg-pink-600/30"
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            <span>AI</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowProjectBrowser(true)}
+            className="flex items-center gap-1.5 rounded border border-lumina-border px-3 py-1.5 text-xs font-medium text-lumina-text-muted transition hover:bg-lumina-bg-hover"
+          >
+            <Folder className="h-3.5 w-3.5" />
+            <span>プロジェクト</span>
           </button>
         </div>
       </header>
@@ -591,6 +688,18 @@ export function LayoutEditor() {
           </div>
         </aside>
       </div>
+      <AiCommandPalette
+        appName="Meteor Layout"
+        isOpen={showAiPalette}
+        onClose={() => setShowAiPalette(false)}
+        onExecuteCommand={runAiCommand}
+        suggestions={["テキストを追加", "画像フレームを追加", "ページを追加", "グリッド切替"]}
+      />
+      <ProjectBrowserModal
+        isOpen={showProjectBrowser}
+        onClose={() => setShowProjectBrowser(false)}
+        defaultAppId="layout"
+      />
     </div>
   );
 }

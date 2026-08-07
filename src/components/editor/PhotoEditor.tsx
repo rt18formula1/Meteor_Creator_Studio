@@ -19,6 +19,8 @@ import { ExportModal } from "./ExportModal";
 import { KeyboardShortcutsModal } from "./KeyboardShortcutsModal";
 import { CanvasSizeModal } from "./CanvasSizeModal";
 import { AgentPanel } from "@/components/agent/AgentPanel";
+import { AiCommandPalette } from "@/components/agent/AiCommandPalette";
+import { ProjectBrowserModal } from "@/components/hub/ProjectBrowserModal";
 import { useEditorStore } from "@/store/use-editor";
 import { useEditorBridge } from "@/store/use-editor-bridge";
 import { useSubscription } from "@/store/use-subscription";
@@ -44,6 +46,8 @@ export function PhotoEditor() {
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
   const [selectedOpacity, setSelectedOpacity] = useState(1);
+  const [showAiPalette, setShowAiPalette] = useState(false);
+  const [showProjectBrowser, setShowProjectBrowser] = useState(false);
   const historyRef = useRef<string[]>([]);
   const historyIndexRef = useRef(-1);
 
@@ -65,6 +69,7 @@ export function PhotoEditor() {
   const setProjectName = useEditorBridge((s) => s.setProjectName);
   const setCursor = useEditorBridge((s) => s.setCursor);
   const showAgentPanel = useEditorBridge((s) => s.showAgentPanel);
+  const handlers = useEditorBridge((s) => s.handlers);
   const register = useEditorBridge((s) => s.register);
   const unregister = useEditorBridge((s) => s.unregister);
   const setShowExportModal = useEditorBridge((s) => s.setShowExportModal);
@@ -563,6 +568,26 @@ export function PhotoEditor() {
   // ショートカット設定をストアから取得
   const shortcuts = useShortcutsStore((s) => s.shortcuts);
 
+  const runAiCommand = useCallback(
+    async (prompt: string): Promise<string> => {
+      if (!handlers) return "キャンバスがまだ準備できていません。";
+      const canvas = await handlers.getCanvasJson();
+      const res = await fetch("/api/v1/agent/run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt, canvas, tier }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message ?? data.error ?? "API error");
+      await handlers.loadCanvasJson(data.canvas);
+      const msgs = (data.results as { message: string }[] | undefined)
+        ?.map((r) => r.message)
+        .join(" / ");
+      return msgs || "コマンドを実行しました。";
+    },
+    [handlers, tier],
+  );
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (
@@ -570,6 +595,12 @@ export function PhotoEditor() {
         e.target instanceof HTMLTextAreaElement ||
         (e.target as HTMLElement).isContentEditable
       ) {
+        return;
+      }
+
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setShowAiPalette((v) => !v);
         return;
       }
 
@@ -633,6 +664,8 @@ export function PhotoEditor() {
         onRedo={handleRedo}
         canUndo={canUndo}
         canRedo={canRedo}
+        onOpenAiPalette={() => setShowAiPalette(true)}
+        onOpenCloudProjects={() => setShowProjectBrowser(true)}
       />
       <div className="flex flex-1 overflow-hidden">
         <ToolBar />
@@ -735,6 +768,18 @@ export function PhotoEditor() {
         accept=".json,.editional.json,application/json"
         className="hidden"
         onChange={handleProjectChange}
+      />
+      <AiCommandPalette
+        appName="Meteor Photo"
+        isOpen={showAiPalette}
+        onClose={() => setShowAiPalette(false)}
+        onExecuteCommand={runAiCommand}
+        suggestions={["青い矩形とテキストを追加", "タイトル追加", "レイヤー確認"]}
+      />
+      <ProjectBrowserModal
+        isOpen={showProjectBrowser}
+        onClose={() => setShowProjectBrowser(false)}
+        defaultAppId="photo"
       />
     </div>
   );

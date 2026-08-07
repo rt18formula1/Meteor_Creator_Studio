@@ -6,12 +6,14 @@ import { useEditorBridge } from "@/store/use-editor-bridge";
 import {
   ArrowLeft,
   Bot,
+  Cloud,
   Download,
   FileImage,
   FolderOpen,
   HelpCircle,
   Redo2,
   Save,
+  Sparkles,
   Undo2,
 } from "lucide-react";
 
@@ -25,6 +27,8 @@ type EditorMenuBarProps = {
   onRedo: () => void;
   canUndo: boolean;
   canRedo: boolean;
+  onOpenAiPalette?: () => void;
+  onOpenCloudProjects?: () => void;
 };
 
 export function EditorMenuBar({
@@ -37,6 +41,8 @@ export function EditorMenuBar({
   onRedo,
   canUndo,
   canRedo,
+  onOpenAiPalette,
+  onOpenCloudProjects,
 }: EditorMenuBarProps) {
   const tier = useSubscription((s) => s.tier);
   const projectName = useEditorBridge((s) => s.projectName);
@@ -97,6 +103,20 @@ export function EditorMenuBar({
           onClick={() => setShowAgentPanel(!showAgentPanel)}
           accent={showAgentPanel}
         />
+        {onOpenAiPalette && (
+          <MenuButton
+            icon={<Sparkles className="h-3.5 w-3.5" />}
+            label="AI (⌘K)"
+            onClick={onOpenAiPalette}
+          />
+        )}
+        {onOpenCloudProjects && (
+          <MenuButton
+            icon={<Cloud className="h-3.5 w-3.5" />}
+            label="クラウド"
+            onClick={onOpenCloudProjects}
+          />
+        )}
         <MenuButton
           icon={<HelpCircle className="h-3.5 w-3.5" />}
           label="ショートカット"

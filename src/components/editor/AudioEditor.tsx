@@ -16,7 +16,11 @@ import {
   Clock,
   Gauge,
   ArrowLeft,
+  Sparkles,
+  Folder,
 } from "lucide-react";
+import { AiCommandPalette } from "@/components/agent/AiCommandPalette";
+import { ProjectBrowserModal } from "@/components/hub/ProjectBrowserModal";
 
 interface AudioTrack {
   id: string;
@@ -58,6 +62,8 @@ export function AudioEditor() {
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(0.8);
   const [playbackRate, setPlaybackRate] = useState(1);
+  const [showAiPalette, setShowAiPalette] = useState(false);
+  const [showProjectBrowser, setShowProjectBrowser] = useState(false);
 
   const [effects, setEffects] = useState<EffectConfig>({
     delay: false,
@@ -67,6 +73,46 @@ export function AudioEditor() {
     highpass: false,
     highpassFreq: 200,
   });
+
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setShowAiPalette((v) => !v);
+      }
+    };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, []);
+
+  const runAiCommand = async (prompt: string): Promise<string> => {
+    const t = prompt.toLowerCase();
+    if (t.includes("再生") || t.includes("play")) {
+      // trigger play via existing UI state if possible
+      setIsPlaying(true);
+      return "再生を要求しました（トラックを選択して再生してください）。";
+    }
+    if (t.includes("停止") || t.includes("pause")) {
+      setIsPlaying(false);
+      return "再生を停止しました。";
+    }
+    const vol = prompt.match(/(\d+)\s*%/);
+    if (t.includes("音量") || t.includes("volume") || vol) {
+      const v = vol ? Math.min(1, Number(vol[1]) / 100) : 0.5;
+      setVolume(v);
+      return `音量を ${Math.round(v * 100)}% に設定しました。`;
+    }
+    if (t.includes("ディレイ") || t.includes("delay")) {
+      setEffects((prev) => ({ ...prev, delay: true }));
+      return "ディレイを有効にしました。";
+    }
+    if (t.includes("アップロード") || t.includes("追加") || t.includes("ファイル")) {
+      fileInputRef.current?.click();
+      return "音声ファイル選択ダイアログを開きました。";
+    }
+    return "例: 「音量を50%」「ディレイを有効」「ファイルを追加」";
+  };
 
   // AudioContext の初期化
   const ensureAudioCtx = useCallback(() => {
@@ -355,20 +401,39 @@ export function AudioEditor() {
           </div>
         </div>
 
-        <button
-          onClick={() => fileInputRef.current?.click()}
-          className="flex items-center gap-1.5 rounded bg-purple-700 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-purple-800 shadow-md"
-        >
-          <Upload className="h-3.5 w-3.5" />
-          <span>音声ファイルを追加</span>
-        </button>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="audio/*"
-          onChange={handleUpload}
-          className="hidden"
-        />
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="flex items-center gap-1.5 rounded bg-purple-700 px-3 py-1.5 text-xs font-semibold text-white shadow-md transition hover:bg-purple-800"
+          >
+            <Upload className="h-3.5 w-3.5" />
+            <span>音声ファイルを追加</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowAiPalette(true)}
+            className="flex items-center gap-1.5 rounded border border-purple-500/30 bg-purple-600/15 px-3 py-1.5 text-xs font-medium text-purple-300 transition hover:bg-purple-600/30"
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            <span>AI</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowProjectBrowser(true)}
+            className="flex items-center gap-1.5 rounded border border-lumina-border px-3 py-1.5 text-xs font-medium text-lumina-text-muted transition hover:bg-lumina-bg-hover"
+          >
+            <Folder className="h-3.5 w-3.5" />
+            <span>プロジェクト</span>
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="audio/*"
+            onChange={handleUpload}
+            className="hidden"
+          />
+        </div>
       </header>
 
       {/* メインエリア */}
@@ -683,6 +748,18 @@ export function AudioEditor() {
           </div>
         </aside>
       </div>
+      <AiCommandPalette
+        appName="Meteor Audio"
+        isOpen={showAiPalette}
+        onClose={() => setShowAiPalette(false)}
+        onExecuteCommand={runAiCommand}
+        suggestions={["音量を50%", "ディレイを有効", "ファイルを追加", "停止"]}
+      />
+      <ProjectBrowserModal
+        isOpen={showProjectBrowser}
+        onClose={() => setShowProjectBrowser(false)}
+        defaultAppId="audio"
+      />
     </div>
   );
 }

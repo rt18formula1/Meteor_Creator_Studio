@@ -6,8 +6,10 @@ import {
   Video, Type, Clock, Download, ArrowLeft, Scissors, SkipBack,
   SkipForward, ZoomIn, ZoomOut, Copy, Undo2, Redo2, ChevronDown,
   Music, AlignLeft, AlignCenter, AlignRight, Bold, Italic,
-  GripVertical, Lock, Eye, EyeOff,
+  GripVertical, Lock, Eye, EyeOff, Sparkles, Folder,
 } from "lucide-react";
+import { AiCommandPalette } from "@/components/agent/AiCommandPalette";
+import { ProjectBrowserModal } from "@/components/hub/ProjectBrowserModal";
 
 /* ─── 型定義 ─── */
 interface VideoClip {
@@ -79,6 +81,8 @@ export function VideoEditor() {
   });
   const [history, setHistory] = useState<{clips: VideoClip[]; subs: SubtitleClip[]; audio: AudioTrack[]}[]>([{clips:[], subs:[], audio:[]}]);
   const [histIdx, setHistIdx] = useState(0);
+  const [showAiPalette, setShowAiPalette] = useState(false);
+  const [showProjectBrowser, setShowProjectBrowser] = useState(false);
   const pushHistory = useCallback((n:{clips: VideoClip[];subs:SubtitleClip[];audio:AudioTrack[]}) => {
     setHistory(h => [...h.slice(0, histIdx + 1), n]);
     setHistIdx(i => i + 1);
@@ -155,6 +159,45 @@ export function VideoEditor() {
     if (v.src !== activeClip.url) { v.src = activeClip.url; v.currentTime = activeClip.trimStart + (currentTime - activeClip.startOffset) * activeClip.speed; }
     v.playbackRate = activeClip.speed; v.muted = activeClip.muted;
   }, [activeClip, currentTime]);
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setShowAiPalette((v) => !v);
+      }
+    };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, []);
+
+  const runAiCommand = async (prompt: string): Promise<string> => {
+    const t = prompt.toLowerCase();
+    if (t.includes("再生") || t.includes("play")) {
+      setIsPlaying(true);
+      videoRef.current?.play();
+      return "再生を開始しました。";
+    }
+    if (t.includes("停止") || t.includes("pause") || t.includes("一時停止")) {
+      setIsPlaying(false);
+      videoRef.current?.pause();
+      return "再生を一時停止しました。";
+    }
+    if (t.includes("字幕") || t.includes("subtitle") || t.includes("テロップ")) {
+      addSubtitle();
+      return "字幕クリップを追加しました。";
+    }
+    if (t.includes("動画") || t.includes("クリップ") || t.includes("upload")) {
+      fileInputRef.current?.click();
+      return "動画ファイル選択ダイアログを開きました。";
+    }
+    if (t.includes("bgm") || t.includes("音声") || t.includes("audio")) {
+      audioInputRef.current?.click();
+      return "BGM選択ダイアログを開きました。";
+    }
+    return "例: 「字幕を追加」「再生」「BGMを追加」";
+  };
+
   const pxPerSec = timelineZoom * 80;
   const timelineWidth = Math.max(totalDuration * pxPerSec + 200, 800);
   return (
@@ -162,7 +205,7 @@ export function VideoEditor() {
       <header className="flex h-11 shrink-0 items-center justify-between border-b border-[var(--lumina-border)] bg-[#181825] px-4">
         <div className="flex items-center gap-3">
           <Link href="/" className="flex items-center gap-1 rounded px-2 py-1 text-xs text-[var(--lumina-text-muted)] hover:bg-[var(--lumina-bg-hover)] hover:text-[var(--lumina-text)] transition">
-            <ArrowLeft className="h-3.5 w-3.5" /><span>ホー��</span>
+            <ArrowLeft className="h-3.5 w-3.5" /><span>ホーム</span>
           </Link>
           <div className="h-4 w-px bg-[var(--lumina-border)]" />
           <div className="flex items-center gap-2">
@@ -175,8 +218,10 @@ export function VideoEditor() {
           <button onClick={undo} disabled={histIdx<=0} className="rounded p-1.5 text-[var(--lumina-text-muted)] hover:bg-[var(--lumina-bg-hover)] disabled:opacity-30"><Undo2 className="h-3.5 w-3.5"/></button>
           <button onClick={redo} disabled={histIdx>=history.length-1} className="rounded p-1.5 text-[var(--lumina-text-muted)] hover:bg-[var(--lumina-bg-hover)] disabled:opacity-30"><Redo2 className="h-3.5 w-3.5"/></button>
           <div className="h-4 w-px bg-[var(--lumina-border)] mx-1" />
-          <button onClick={()=>fileInputRef.current?.click()} className="flex items-center gap-1.5 rounded bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700 transition"><Upload className="h-3.5 w-3.5"/>���一を追加</button>
-          <button onClick={()=>audioInputRef.current?.click()} className="flex items-center gap-1.5 rounded border border-[var(--lumina-border)] px-3 py-1.5 text-xs text-[var(--lumina-text-muted)] hover:bg-[var(--lumina-bg-hover)] transition"><Music className="h-3.5 w-3.5"/>BGMを追加</button>
+          <button onClick={()=>fileInputRef.current?.click()} className="flex items-center gap-1.5 rounded bg-red-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-red-700 transition"><Upload className="h-3.5 w-3.5"/>動画を追加</button>
+          <button type="button" onClick={()=>audioInputRef.current?.click()} className="flex items-center gap-1.5 rounded border border-[var(--lumina-border)] px-3 py-1.5 text-xs text-[var(--lumina-text-muted)] hover:bg-[var(--lumina-bg-hover)] transition"><Music className="h-3.5 w-3.5"/>BGMを追加</button>
+          <button type="button" onClick={() => setShowAiPalette(true)} className="flex items-center gap-1.5 rounded border border-orange-500/30 bg-orange-600/15 px-3 py-1.5 text-xs font-medium text-orange-300 transition hover:bg-orange-600/30"><Sparkles className="h-3.5 w-3.5"/><span>AI</span></button>
+          <button type="button" onClick={() => setShowProjectBrowser(true)} className="flex items-center gap-1.5 rounded border border-[var(--lumina-border)] px-3 py-1.5 text-xs text-[var(--lumina-text-muted)] hover:bg-[var(--lumina-bg-hover)] transition"><Folder className="h-3.5 w-3.5"/><span>プロジェクト</span></button>
           <input ref={fileInputRef} type="file" accept="video/*" onChange={handleUpload} className="hidden"/>
           <input ref={audioInputRef} type="file" accept="audio/*" onChange={handleAudioUpload} className="hidden"/>
         </div>
@@ -251,7 +296,7 @@ export function VideoEditor() {
           )}
           {activeTab==="clip"&&(
             <div className="lumina-scrollbar flex-1 overflow-y-auto p-3 space-y-2">
-              {clips.length===0?(< p className="py-8 text-center text-[11px] text-[var(--lumina-text-muted)]">動画を追加してくください</p>):clips.map(clip=>(
+              {clips.length===0?(<p className="py-8 text-center text-[11px] text-[var(--lumina-text-muted)]">動画を追加してください</p>):clips.map(clip=>(
                 <div key={clip.id} onClick={()=>setSelectedId(clip.id)} className={`rounded border p-2 cursor-pointer space-y-1.5 ${selectedId===clip.id?"border-red-500/40 bg-red-600/10":"border-[var(--lumina-border)] bg-[#1e1e2e]/40 hover:bg-[var(--lumina-bg-hover)]"}`}>
                   <div className="flex items-center justify-between"><span className="truncate text-xs font-medium">{clip.name}</span><button onClick={e=>{e.stopPropagation();deleteClip(clip.id);}} className="rounded p-0.5 text-[var(--lumina-text-muted)] hover:text-red-400"><Trash2 className="h-3 w-3"/></button></div>
                   <div className="text-[10px] text-[var(--lumina-text-muted)] font-mono">{clip.duration.toFixed(2)}s • offset {clip.startOffset.toFixed(2)}s</div>
@@ -301,6 +346,18 @@ export function VideoEditor() {
           </div>
         </div>
       </footer>
+      <AiCommandPalette
+        appName="Editional Video"
+        isOpen={showAiPalette}
+        onClose={() => setShowAiPalette(false)}
+        onExecuteCommand={runAiCommand}
+        suggestions={["字幕を追加", "再生", "一時停止", "BGMを追加"]}
+      />
+      <ProjectBrowserModal
+        isOpen={showProjectBrowser}
+        onClose={() => setShowProjectBrowser(false)}
+        defaultAppId="video"
+      />
     </div>
   );
 }
