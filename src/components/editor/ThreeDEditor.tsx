@@ -6,13 +6,11 @@ import {
   ArrowLeft,
   Box,
   Circle,
-  Sun,
-  Layers,
   Sparkles,
-  Sliders,
-  RotateCw,
-  Eye,
+  Folder,
 } from "lucide-react";
+import { AiCommandPalette } from "@/components/agent/AiCommandPalette";
+import { ProjectBrowserModal } from "@/components/hub/ProjectBrowserModal";
 
 interface Object3D {
   id: string;
@@ -54,8 +52,22 @@ export function ThreeDEditor() {
   const [viewRotationY, setViewRotationY] = useState(30);
   const [isDragging, setIsDragging] = useState(false);
   const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const [showAiPalette, setShowAiPalette] = useState(false);
+  const [showProjectBrowser, setShowProjectBrowser] = useState(false);
 
   const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setShowAiPalette((v) => !v);
+      }
+    };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, []);
 
   // 3Dレンダリング
   useEffect(() => {
@@ -168,6 +180,24 @@ export function ThreeDEditor() {
 
   const selectedObj = objects.find((o) => o.id === selectedObjId);
 
+  const runAiCommand = async (text: string): Promise<string> => {
+    const t = text.toLowerCase();
+    if (t.includes("球") || t.includes("sphere")) {
+      addObject("sphere");
+      return "球体を追加しました。";
+    }
+    if (t.includes("円柱") || t.includes("cylinder")) {
+      addObject("cylinder");
+      return "円柱を追加しました。";
+    }
+    if (t.includes("トーラス") || t.includes("torus") || t.includes("ドーナツ")) {
+      addObject("torus");
+      return "トーラスを追加しました。";
+    }
+    addObject("cube");
+    return "キューブを追加しました。";
+  };
+
   const handleMouseDown = (e: React.MouseEvent) => {
     setIsDragging(true);
     setDragStart({ x: e.clientX, y: e.clientY });
@@ -204,6 +234,24 @@ export function ThreeDEditor() {
             </div>
             <span className="text-sm font-semibold tracking-tight">Editional 3D</span>
           </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setShowAiPalette(true)}
+            className="flex items-center gap-1.5 rounded border border-teal-500/30 bg-teal-600/15 px-3 py-1.5 text-xs font-medium text-teal-300 transition hover:bg-teal-600/30"
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            <span>AI</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowProjectBrowser(true)}
+            className="flex items-center gap-1.5 rounded border border-lumina-border px-3 py-1.5 text-xs font-medium text-lumina-text-muted transition hover:bg-lumina-bg-hover"
+          >
+            <Folder className="h-3.5 w-3.5" />
+            <span>プロジェクト</span>
+          </button>
         </div>
       </header>
 
@@ -315,6 +363,18 @@ export function ThreeDEditor() {
           </div>
         </aside>
       </div>
+      <AiCommandPalette
+        appName="Editional 3D"
+        isOpen={showAiPalette}
+        onClose={() => setShowAiPalette(false)}
+        onExecuteCommand={runAiCommand}
+        suggestions={["キューブを追加", "球体を追加", "円柱を追加", "トーラスを追加"]}
+      />
+      <ProjectBrowserModal
+        isOpen={showProjectBrowser}
+        onClose={() => setShowProjectBrowser(false)}
+        defaultAppId="3d"
+      />
     </div>
   );
 }

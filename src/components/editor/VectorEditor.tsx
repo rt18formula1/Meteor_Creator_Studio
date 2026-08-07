@@ -1,6 +1,9 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { MousePointer2, Pen, Square, Circle, Type, Download, Undo2, Redo2, ZoomIn, ZoomOut, Trash2, Move } from "lucide-react";
+import Link from "next/link";
+import { MousePointer2, Pen, Square, Circle, Type, Download, Undo2, Redo2, ZoomIn, ZoomOut, Trash2, Move, ArrowLeft, Sparkles, Folder } from "lucide-react";
+import { AiCommandPalette } from "@/components/agent/AiCommandPalette";
+import { ProjectBrowserModal } from "@/components/hub/ProjectBrowserModal";
 
 type Vec2 = { x: number; y: number };
 type PathNode = { id: string; pos: Vec2; type: "anchor" | "smooth"; cp1?: Vec2; cp2?: Vec2; };
@@ -39,6 +42,8 @@ export function VectorEditor() {
   const [histIdx, setHistIdx] = useState(0);
   const isPanning = useRef(false);
   const lastPan = useRef<Vec2>({ x: 0, y: 0 });
+  const [showAiPalette, setShowAiPalette] = useState(false);
+  const [showProjectBrowser, setShowProjectBrowser] = useState(false);
   const selectedShape = shapes.find(s => s.id === selected) ?? null;
 
   const pushHistory = useCallback((next: VShape[]) => {
@@ -122,6 +127,55 @@ export function VectorEditor() {
     setShapes(prev => prev.map(s => s.id === selected ? { ...s, ...patch } : s));
   }, [selected]);
 
+  const runAiCommand = useCallback(async (text: string): Promise<string> => {
+    const t = text.toLowerCase();
+    const color =
+      t.includes("赤") || t.includes("red") ? "#e34850" :
+      t.includes("緑") || t.includes("green") ? "#2d9d78" :
+      t.includes("黄") || t.includes("yellow") ? "#f5c518" :
+      t.includes("黒") || t.includes("black") ? "#111111" :
+      t.includes("白") || t.includes("white") ? "#ffffff" :
+      t.includes("青") || t.includes("blue") ? "#1473e6" : "#1473e6";
+
+    if (t.includes("削除") || t.includes("消す") || t.includes("delete")) {
+      if (!selected) return "削除するオブジェクトが選択されていません。";
+      const name = shapes.find(s => s.id === selected)?.name ?? "オブジェクト";
+      pushHistory(shapes.filter(s => s.id !== selected));
+      setSelected(null);
+      return `「${name}」を削除しました。`;
+    }
+
+    if (t.includes("不透明") || t.includes("opacity")) {
+      const m = text.match(/(\d+)\s*%?/);
+      const opacity = m ? Math.min(1, Math.max(0, Number(m[1]) / (Number(m[1]) > 1 ? 100 : 1))) : 0.5;
+      if (!selected) return "不透明度を変えるオブジェクトを選択してください。";
+      pushHistory(shapes.map(s => s.id === selected ? { ...s, opacity } : s));
+      return `選択中オブジェクトの不透明度を ${Math.round(opacity * 100)}% に変更しました。`;
+    }
+
+    if (t.includes("楕円") || t.includes("円") || t.includes("ellipse") || t.includes("circle")) {
+      const s: VShape = { id: genId(), name: "AI楕円", type: "ellipse", fill: color, stroke: "none", strokeWidth: 0, opacity: 1, cx: 400, cy: 300, rx2: 80, ry: 60 };
+      pushHistory([...shapes, s]); setSelected(s.id);
+      return `${color} の楕円を追加しました。`;
+    }
+
+    if (t.includes("テキスト") || t.includes("文字") || t.includes("text")) {
+      const quoted = text.match(/[「"'](.+?)[」"']/);
+      const label = quoted?.[1] ?? "AIテキスト";
+      const s: VShape = { id: genId(), name: "AIテキスト", type: "text", fill: color === "#ffffff" ? "#111111" : color, stroke: "none", strokeWidth: 0, opacity: 1, text: label, fontSize: 36, fontFamily: "Inter", tx: 280, ty: 300 };
+      pushHistory([...shapes, s]); setSelected(s.id);
+      return `テキスト「${label}」を追加しました。`;
+    }
+
+    if (t.includes("四角") || t.includes("矩形") || t.includes("rect") || t.includes("square") || t.includes("追加")) {
+      const s: VShape = { id: genId(), name: "AI矩形", type: "rect", fill: color, stroke: "none", strokeWidth: 0, opacity: 1, x: 300, y: 220, width: 200, height: 140, rx: 8 };
+      pushHistory([...shapes, s]); setSelected(s.id);
+      return `${color} の矩形を追加しました。`;
+    }
+
+    return "解釈できませんでした。例: 「赤い四角形を追加」「テキストを追加」「不透明度を50%に」";
+  }, [shapes, selected, pushHistory]);
+
   const scale = zoom / 100;
   const inp = "w-full rounded border border-[var(--lumina-border)] bg-[var(--lumina-bg)] px-2 py-1 text-[11px] text-[var(--lumina-text)] outline-none focus:border-[var(--lumina-accent)]";
 
@@ -138,6 +192,7 @@ export function VectorEditor() {
     const h = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
       const k = e.key.toLowerCase();
+      if ((e.metaKey || e.ctrlKey) && k === "k") { e.preventDefault(); setShowAiPalette(prev => !prev); return; }
       if (k==="v") setTool("select"); if (k==="h") setTool("move"); if (k==="p") setTool("pen");
       if (k==="r") setTool("rect"); if (k==="e") setTool("ellipse"); if (k==="t") setTool("text");
       if (k==="enter" && tool==="pen" && drawing) commitPen();
@@ -153,9 +208,9 @@ export function VectorEditor() {
     <div className="flex h-full flex-col bg-[var(--lumina-bg)]">
       {/* ヘッダー */}
       <div className="flex h-10 items-center justify-between border-b border-[var(--lumina-border)] bg-[var(--lumina-bg-panel)] px-4">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold text-[var(--lumina-text)]">Meteor Vector</span>
-          <span className="rounded bg-[var(--lumina-accent)]/20 px-1.5 py-0.5 text-[10px] text-[var(--lumina-accent)]">Beta</span>
+        <div className="flex items-center gap-3">
+          <Link href="/" className="flex items-center gap-1 rounded px-2 py-1 text-xs text-[var(--lumina-text-muted)] transition hover:bg-[var(--lumina-bg-hover)] hover:text-[var(--lumina-text)]" title="ホームに戻る"><ArrowLeft className="h-3.5 w-3.5" /><span>ホーム</span></Link>
+          <span className="text-sm font-semibold text-[var(--lumina-text)] border-l border-[var(--lumina-border)] pl-3">Editional Vector</span>
         </div>
         <div className="flex items-center gap-1">
           <button type="button" onClick={undo} disabled={histIdx<=0} className="rounded p-1.5 text-[var(--lumina-text-muted)] hover:bg-[var(--lumina-bg-hover)] disabled:opacity-40"><Undo2 className="h-3.5 w-3.5" /></button>
@@ -166,6 +221,9 @@ export function VectorEditor() {
           <button type="button" onClick={() => setZoom(z => Math.min(400, z+10))} className="rounded p-1.5 text-[var(--lumina-text-muted)] hover:bg-[var(--lumina-bg-hover)]"><ZoomIn className="h-3.5 w-3.5" /></button>
           <span className="mx-1 h-4 w-px bg-[var(--lumina-border)]" />
           <button type="button" onClick={exportSvg} className="flex items-center gap-1 rounded bg-[var(--lumina-accent)] px-3 py-1 text-xs text-white hover:opacity-90"><Download className="h-3 w-3" />SVG書き出し</button>
+          <span className="mx-1 h-4 w-px bg-[var(--lumina-border)]" />
+          <button type="button" onClick={() => setShowAiPalette(true)} className="flex items-center gap-1.5 rounded px-3 py-1 text-xs font-medium text-indigo-300 border border-indigo-500/30 bg-indigo-600/15 hover:bg-indigo-600/30 transition"><Sparkles className="h-3.5 w-3.5" /><span>AI</span></button>
+          <button type="button" onClick={() => setShowProjectBrowser(true)} className="flex items-center gap-1.5 rounded px-3 py-1 text-xs font-medium text-[var(--lumina-text-muted)] border border-[var(--lumina-border)] hover:bg-[var(--lumina-bg-hover)] transition"><Folder className="h-3.5 w-3.5" /><span>プロジェクト</span></button>
         </div>
       </div>
 
@@ -236,6 +294,18 @@ export function VectorEditor() {
           </div>
         </div>
       </div>
+      <AiCommandPalette
+        appName="Editional Vector"
+        isOpen={showAiPalette}
+        onClose={() => setShowAiPalette(false)}
+        onExecuteCommand={runAiCommand}
+        suggestions={["赤い四角形を追加", "青い楕円を追加", "テキストを追加", "不透明度を 50% に変更"]}
+      />
+      <ProjectBrowserModal
+        isOpen={showProjectBrowser}
+        onClose={() => setShowProjectBrowser(false)}
+        defaultAppId="vector"
+      />
     </div>
   );
 }

@@ -5,19 +5,16 @@ import Link from "next/link";
 import {
   Play,
   Pause,
-  RotateCcw,
-  Plus,
-  Trash2,
   Square,
   Circle as CircleIcon,
   Type,
   ArrowLeft,
   Key,
-  Layers,
   Sparkles,
-  Sliders,
-  Film,
+  Folder,
 } from "lucide-react";
+import { AiCommandPalette } from "@/components/agent/AiCommandPalette";
+import { ProjectBrowserModal } from "@/components/hub/ProjectBrowserModal";
 
 interface Keyframe {
   time: number; // 秒
@@ -56,9 +53,23 @@ export function MotionEditor() {
   const [currentTime, setCurrentTime] = useState(0); // 秒
   const [duration, setDuration] = useState(5); // 総フレーム長 (5秒)
   const [isPlaying, setIsPlaying] = useState(false);
+  const [showAiPalette, setShowAiPalette] = useState(false);
+  const [showProjectBrowser, setShowProjectBrowser] = useState(false);
 
   const requestRef = useRef<number | null>(null);
   const startTimeRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setShowAiPalette((v) => !v);
+      }
+    };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, []);
 
   // アニメーション再生ループ
   const animate = useCallback((timestamp: number) => {
@@ -156,6 +167,28 @@ export function MotionEditor() {
   const selectedLayer = layers.find((l) => l.id === selectedLayerId);
   const selectedState = selectedLayer ? getInterpolatedState(selectedLayer, currentTime) : null;
 
+  const runAiCommand = async (text: string): Promise<string> => {
+    const t = text.toLowerCase();
+    if (t.includes("円") || t.includes("circle")) {
+      addLayer("circle");
+      return "円レイヤーを追加しました。";
+    }
+    if (t.includes("テキスト") || t.includes("文字") || t.includes("text")) {
+      addLayer("text");
+      return "テキストレイヤーを追加しました。";
+    }
+    if (t.includes("再生") || t.includes("play")) {
+      setIsPlaying(true);
+      return "アニメーションを再生しました。";
+    }
+    if (t.includes("停止") || t.includes("pause") || t.includes("一時停止")) {
+      setIsPlaying(false);
+      return "再生を一時停止しました。";
+    }
+    addLayer("rect");
+    return "シェイプレイヤーを追加しました。";
+  };
+
   return (
     <div className="flex h-full flex-col bg-[#11111b] text-lumina-text select-none">
       {/* ヘッダー */}
@@ -179,13 +212,30 @@ export function MotionEditor() {
 
         <div className="flex items-center gap-3">
           <button
+            type="button"
             onClick={() => setIsPlaying(!isPlaying)}
-            className={`flex items-center gap-1.5 rounded px-3 py-1.5 text-xs font-semibold text-white transition shadow-md ${
+            className={`flex items-center gap-1.5 rounded px-3 py-1.5 text-xs font-semibold text-white shadow-md transition ${
               isPlaying ? "bg-amber-600 hover:bg-amber-700" : "bg-indigo-600 hover:bg-indigo-700"
             }`}
           >
             {isPlaying ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
             <span>{isPlaying ? "一時停止" : "再生"}</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowAiPalette(true)}
+            className="flex items-center gap-1.5 rounded border border-indigo-500/30 bg-indigo-600/15 px-3 py-1.5 text-xs font-medium text-indigo-300 transition hover:bg-indigo-600/30"
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            <span>AI</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowProjectBrowser(true)}
+            className="flex items-center gap-1.5 rounded border border-lumina-border px-3 py-1.5 text-xs font-medium text-lumina-text-muted transition hover:bg-lumina-bg-hover"
+          >
+            <Folder className="h-3.5 w-3.5" />
+            <span>プロジェクト</span>
           </button>
         </div>
       </header>
@@ -439,6 +489,18 @@ export function MotionEditor() {
           ))}
         </div>
       </footer>
+      <AiCommandPalette
+        appName="Editional Motion"
+        isOpen={showAiPalette}
+        onClose={() => setShowAiPalette(false)}
+        onExecuteCommand={runAiCommand}
+        suggestions={["円を追加", "テキストを追加", "再生", "一時停止"]}
+      />
+      <ProjectBrowserModal
+        isOpen={showProjectBrowser}
+        onClose={() => setShowProjectBrowser(false)}
+        defaultAppId="motion"
+      />
     </div>
   );
 }

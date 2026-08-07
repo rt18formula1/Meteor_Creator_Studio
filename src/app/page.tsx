@@ -4,7 +4,7 @@ import { HubHeader } from "@/components/hub/HubHeader";
 import { AppCard } from "@/components/hub/AppCard";
 import { CREATIVE_APPS } from "@/lib/apps";
 import { PLAN_LIMITS } from "@/lib/freemium";
-import { getRecentProjects } from "@/lib/editor/recent-projects";
+import { getCloudProjects, getCloudProjectView } from "@/lib/editor/recent-projects";
 import { useSubscription } from "@/store/use-subscription";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -13,10 +13,10 @@ import { Bot, HardDrive, Layers, Sparkles } from "lucide-react";
 export default function HubPage() {
   const tier = useSubscription((s) => s.tier);
   const limits = PLAN_LIMITS[tier];
-  const [recent, setRecent] = useState<{ name: string; updatedAt: string }[]>([]);
+  const [recent, setRecent] = useState<ReturnType<typeof getCloudProjectView>[]>([]);
 
   useEffect(() => {
-    setRecent(getRecentProjects());
+    setRecent(getCloudProjects().map(getCloudProjectView).slice(0, 6));
   }, []);
 
   return (
@@ -87,11 +87,22 @@ export default function HubPage() {
               <div className="space-y-2">
                 {recent.map((p) => (
                   <Link
-                    key={p.name + p.updatedAt}
-                    href="/apps/photo"
+                    key={p.id}
+                    href={p.href}
                     className="flex items-center justify-between rounded-lg border border-lumina-border bg-lumina-bg-elevated px-4 py-3 transition hover:border-lumina-accent/40"
                   >
-                    <span className="text-sm text-lumina-text">{p.name}</span>
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="flex h-6 w-6 items-center justify-center rounded text-[10px] font-bold text-white"
+                        style={{ backgroundColor: p.color }}
+                      >
+                        {p.appShortName}
+                      </div>
+                      <div>
+                        <span className="text-sm text-lumina-text">{p.name}</span>
+                        <p className="text-[10px] text-lumina-text-muted">{p.appName}</p>
+                      </div>
+                    </div>
                     <span className="text-[10px] text-lumina-text-muted">
                       {new Date(p.updatedAt).toLocaleDateString("ja-JP")}
                     </span>

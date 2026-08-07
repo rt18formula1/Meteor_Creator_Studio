@@ -1,23 +1,18 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
   Smartphone,
   Tablet,
   Monitor,
-  Plus,
-  Trash2,
-  Layers,
   Sparkles,
-  Sliders,
-  MousePointer,
   Link2,
-  Box,
-  Eye,
-  Type,
+  Folder,
 } from "lucide-react";
+import { AiCommandPalette } from "@/components/agent/AiCommandPalette";
+import { ProjectBrowserModal } from "@/components/hub/ProjectBrowserModal";
 
 interface UIComponent {
   id: string;
@@ -68,6 +63,20 @@ export function DesignEditor() {
   const [selectedArtboardId, setSelectedArtboardId] = useState<string>("artboard-1");
   const [selectedComponentId, setSelectedComponentId] = useState<string | null>(null);
   const [showPrototypeLinks, setShowPrototypeLinks] = useState(true);
+  const [showAiPalette, setShowAiPalette] = useState(false);
+  const [showProjectBrowser, setShowProjectBrowser] = useState(false);
+
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setShowAiPalette((v) => !v);
+      }
+    };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
+  }, []);
 
   const addArtboard = (device: "mobile" | "tablet" | "desktop") => {
     const dim =
@@ -107,6 +116,34 @@ export function DesignEditor() {
 
   const activeArtboard = artboards.find((a) => a.id === selectedArtboardId);
 
+  const runAiCommand = useCallback(
+    async (text: string): Promise<string> => {
+      const t = text.toLowerCase();
+      if (t.includes("画面") || t.includes("アートボード") || t.includes("artboard")) {
+        addArtboard(t.includes("デスクトップ") || t.includes("desktop") ? "desktop" : t.includes("タブレット") || t.includes("tablet") ? "tablet" : "mobile");
+        return "新しいアートボードを追加しました。";
+      }
+      if (t.includes("ボタン") || t.includes("button")) {
+        addComponentToActive("button");
+        return "ボタンコンポーネントを追加しました。";
+      }
+      if (t.includes("入力") || t.includes("input") || t.includes("フィールド")) {
+        addComponentToActive("input");
+        return "入力フィールドを追加しました。";
+      }
+      if (t.includes("カード") || t.includes("card")) {
+        addComponentToActive("card");
+        return "カードコンポーネントを追加しました。";
+      }
+      if (t.includes("ナビ") || t.includes("ヘッダー") || t.includes("navbar")) {
+        addComponentToActive("navbar");
+        return "ナビバーを追加しました。";
+      }
+      return "解釈できませんでした。例: 「ボタンを追加」「モバイル画面を追加」";
+    },
+    [artboards, selectedArtboardId],
+  );
+
   return (
     <div className="flex h-full flex-col bg-[#11111b] text-lumina-text select-none">
       {/* ヘッダー */}
@@ -130,15 +167,32 @@ export function DesignEditor() {
 
         <div className="flex items-center gap-2">
           <button
+            type="button"
             onClick={() => setShowPrototypeLinks(!showPrototypeLinks)}
-            className={`flex items-center gap-1.5 rounded px-3 py-1.5 text-xs font-medium border transition ${
+            className={`flex items-center gap-1.5 rounded border px-3 py-1.5 text-xs font-medium transition ${
               showPrototypeLinks
-                ? "bg-pink-600/20 border-pink-500/40 text-pink-300"
+                ? "border-pink-500/40 bg-pink-600/20 text-pink-300"
                 : "border-lumina-border text-lumina-text-muted hover:bg-lumina-bg-hover"
             }`}
           >
             <Link2 className="h-3.5 w-3.5" />
             <span>プロトタイプ表示</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowAiPalette(true)}
+            className="flex items-center gap-1.5 rounded border border-pink-500/30 bg-pink-600/15 px-3 py-1.5 text-xs font-medium text-pink-300 transition hover:bg-pink-600/30"
+          >
+            <Sparkles className="h-3.5 w-3.5" />
+            <span>AI</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowProjectBrowser(true)}
+            className="flex items-center gap-1.5 rounded border border-lumina-border px-3 py-1.5 text-xs font-medium text-lumina-text-muted transition hover:bg-lumina-bg-hover"
+          >
+            <Folder className="h-3.5 w-3.5" />
+            <span>プロジェクト</span>
           </button>
         </div>
       </header>
@@ -302,6 +356,18 @@ export function DesignEditor() {
           </div>
         </aside>
       </div>
+      <AiCommandPalette
+        appName="Editional Design"
+        isOpen={showAiPalette}
+        onClose={() => setShowAiPalette(false)}
+        onExecuteCommand={runAiCommand}
+        suggestions={["ボタンを追加", "入力フィールドを追加", "モバイル画面を追加", "カードを追加"]}
+      />
+      <ProjectBrowserModal
+        isOpen={showProjectBrowser}
+        onClose={() => setShowProjectBrowser(false)}
+        defaultAppId="design"
+      />
     </div>
   );
 }
