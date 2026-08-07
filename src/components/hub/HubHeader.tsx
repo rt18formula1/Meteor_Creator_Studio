@@ -15,7 +15,7 @@ export function HubHeader() {
             E
           </div>
           <span className="text-sm font-semibold tracking-tight text-lumina-text">
-            Editional Creative Cloud
+            Meteor Creator Studio
           </span>
         </Link>
         <nav className="hidden items-center gap-1 md:flex">

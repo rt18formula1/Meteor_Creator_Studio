@@ -3,7 +3,7 @@ import { AGENT_TOOLS, COMMAND_SCHEMAS, OPENAPI_SPEC } from "@/lib/agent/tools";
 
 export async function GET() {
   return agentJson({
-    name: "Editional Creative Cloud Agent API",
+    name: "Meteor Creator Studio Agent API",
     version: "1.0.0",
     description: "外部AIエージェント（Manus等）向け REST API",
     endpoints: {

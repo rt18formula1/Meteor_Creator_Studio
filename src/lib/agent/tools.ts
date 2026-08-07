@@ -10,7 +10,7 @@ export const AGENT_TOOLS: AgentTool[] = [
   {
     name: "photo_execute_commands",
     description:
-      "Editional Photo のキャンバスに対してコマンドを実行する。外部AI（Manus等）はこのツールで画像編集を自動化できる。",
+      "Meteor Photo のキャンバスに対してコマンドを実行する。外部AI（Manus等）はこのツールで画像編集を自動化できる。",
     inputSchema: {
       type: "object",
       required: ["canvas", "commands"],
@@ -217,12 +217,12 @@ export const COMMAND_SCHEMAS: Record<EditorCommand["type"], AgentTool> = {
 export const OPENAPI_SPEC = {
   openapi: "3.1.0",
   info: {
-    title: "Editional Creative Cloud Agent API",
+    title: "Meteor Creator Studio Agent API",
     version: "1.0.0",
     description:
-      "Manus 等の外部AIエージェントが Editional Photo を操作するための REST API。ステートレス設計のため、キャンバス JSON をリクエストごとに送受信します。",
+      "Manus 等の外部AIエージェントが Meteor Photo を操作するための REST API。ステートレス設計のため、キャンバス JSON をリクエストごとに送受信します。",
   },
-  servers: [{ url: "/api/v1", description: "Editional API v1" }],
+  servers: [{ url: "/api/v1", description: "Meteor API v1" }],
   security: [{ ApiKeyAuth: [] }],
   paths: {
     "/photo/execute": {
@@ -281,7 +281,7 @@ export const OPENAPI_SPEC = {
       ApiKeyAuth: {
         type: "apiKey",
         in: "header",
-        name: "X-Editional-Api-Key",
+        name: "X-Meteor-Api-Key",
         description: "環境変数 EDITIONAL_AGENT_API_KEY と一致するキー（未設定時は認証スキップ）",
       },
     },

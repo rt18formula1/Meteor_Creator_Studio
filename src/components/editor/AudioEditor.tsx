@@ -350,7 +350,7 @@ export function AudioEditor() {
               Au
             </div>
             <span className="text-sm font-semibold tracking-tight">
-              Editional Audio
+              Meteor Audio
             </span>
           </div>
         </div>

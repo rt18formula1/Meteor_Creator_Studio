@@ -18,7 +18,7 @@ export function ComingSoonPage({
           href="/apps/photo"
           className="mt-4 text-sm text-lumina-accent hover:underline"
         >
-          Editional Photo を使う
+          Meteor Photo を使う
         </Link>
       </main>
     </div>

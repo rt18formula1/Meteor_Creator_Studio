@@ -1,10 +1,10 @@
-# Editional Creative Cloud
+# Meteor Creator Studio
 
 Adobe Creative Cloud のフリーミアム代替。Canva のようなテンプレート型ではなく、**プロ向けのレイヤー・ツール・パネル構成**を採用しています。
 
 ## コンセプト
 
-| | Adobe CC | Canva | Editional CC |
+| | Adobe CC | Canva | Meteor CS |
 |---|---|---|---|
 | ターゲット | プロ | 一般ユーザー | プロ〜中級者 |
 | UI | パネル・ツールバー | テンプレート・ドラッグ | Adobe風パネル |
@@ -13,11 +13,11 @@ Adobe Creative Cloud のフリーミアム代替。Canva のようなテンプ�
 
 ## アプリ構成
 
-- **Editional Photo** — ラスター画像編集（MVP、利用可能）
-- **Editional Vector** — ベクターグラフィック（近日公開）
-- **Editional Video** — 動画編集（近日公開）
-- **Editional Layout** — 組版（近日公開）
-- **Editional Audio** — オーディオ編集（近日公開）
+- **Meteor Photo** — ラスター画像編集（MVP、利用可能）
+- **Meteor Vector** — ベクターグラフィック（近日公開）
+- **Meteor Video** — 動画編集（近日公開）
+- **Meteor Layout** — 組版（近日公開）
+- **Meteor Audio** — オーディオ編集（近日公開）
 
 ## フリーミアム制限
 
@@ -113,14 +113,14 @@ Netlify の環境変数に `EDITIONAL_AGENT_API_KEY` を設定すると API キ�
 ## ロードマップ
 
 1. [x] Creative Cloud ハブ（ランチャー）
-2. [x] Editional Photo MVP（レイヤー、ブラシ、図形、テキスト、書き出し）
+2. [x] Meteor Photo MVP（レイヤー、ブラシ、図形、テキスト、書き出し）
 3. [x] フリーミアム制限（レイヤー数、ウォーターマーク）
 4. [x] Agent REST API（Manus 等の外部AI連携）
 5. [x] プロジェクト保存（`.editional.json`）
 6. [ ] ユーザー認証（Supabase Auth）
 7. [ ] クラウド同期・ファイル管理
 8. [ ] Stripe 決済連携
-9. [ ] Editional Vector（SVG エディター）
+9. [ ] Meteor Vector（SVG エディター）
 10. [ ] PSD / AI ファイル互換
 
 ## ライセンス

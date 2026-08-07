@@ -1,10 +1,10 @@
 "use client";
 
-import type { EditionalProject } from "@/lib/editor/document";
+import type { MeteorProject } from "@/lib/editor/document";
 
 const STORAGE_KEY = "editional-recent-projects";
 
-export function saveRecentProject(project: EditionalProject) {
+export function saveRecentProject(project: MeteorProject) {
   const list = getRecentProjects().filter((p) => p.name !== project.name);
   list.unshift({ name: project.name, updatedAt: project.updatedAt });
   localStorage.setItem(STORAGE_KEY, JSON.stringify(list.slice(0, 8)));
@@ -19,7 +19,7 @@ export function getRecentProjects(): { name: string; updatedAt: string }[] {
   }
 }
 
-export function downloadProject(project: EditionalProject) {
+export function downloadProject(project: MeteorProject) {
   const blob = new Blob([JSON.stringify(project, null, 2)], {
     type: "application/json",
   });

@@ -154,7 +154,7 @@ export function VectorEditor() {
       {/* ヘッダー */}
       <div className="flex h-10 items-center justify-between border-b border-[var(--lumina-border)] bg-[var(--lumina-bg-panel)] px-4">
         <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold text-[var(--lumina-text)]">Editional Vector</span>
+          <span className="text-sm font-semibold text-[var(--lumina-text)]">Meteor Vector</span>
           <span className="rounded bg-[var(--lumina-accent)]/20 px-1.5 py-0.5 text-[10px] text-[var(--lumina-accent)]">Beta</span>
         </div>
         <div className="flex items-center gap-1">

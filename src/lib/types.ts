@@ -7,7 +7,7 @@ export type CreativeApp = {
   name: string;
   shortName: string;
   description: string;
-  category: "photo" | "vector" | "video" | "layout" | "audio";
+  category: "photo" | "vector" | "video" | "layout" | "audio" | "motion" | "design" | "3d";
   href: string;
   status: AppStatus;
   iconColor: string;

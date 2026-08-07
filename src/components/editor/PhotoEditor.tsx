@@ -27,7 +27,7 @@ import { PLAN_LIMITS, canAddLayer } from "@/lib/freemium";
 import {
   DEFAULT_CANVAS_HEIGHT,
   DEFAULT_CANVAS_WIDTH,
-  type EditionalProject,
+  type MeteorProject,
   createProject,
 } from "@/lib/editor/document";
 import { downloadProject, saveRecentProject } from "@/lib/editor/recent-projects";
@@ -133,9 +133,9 @@ export function PhotoEditor() {
     const canvas = fabricRef.current;
     if (!canvas) return;
 
-    const project: EditionalProject = {
+    const project: MeteorProject = {
       ...createProject(projectName),
-      canvas: canvas.toObject(["data"]) as EditionalProject["canvas"],
+      canvas: canvas.toObject(["data"]) as MeteorProject["canvas"],
       updatedAt: new Date().toISOString(),
     };
     downloadProject(project);
@@ -420,7 +420,7 @@ export function PhotoEditor() {
 
       const download = (href: string) => {
         const link = document.createElement("a");
-        link.download = `editional-export.${format}`;
+        link.download = `meteor-export.${format}`;
         link.href = href;
         link.click();
       };
@@ -437,7 +437,7 @@ export function PhotoEditor() {
           ctx.font = "24px Inter, sans-serif";
           ctx.fillStyle = "rgba(0,0,0,0.3)";
           ctx.textAlign = "right";
-          ctx.fillText("Editional Photo（無料版）", DEFAULT_CANVAS_WIDTH - 20, DEFAULT_CANVAS_HEIGHT - 20);
+          ctx.fillText("Meteor Photo（無料版）", DEFAULT_CANVAS_WIDTH - 20, DEFAULT_CANVAS_HEIGHT - 20);
           download(exportCanvas.toDataURL("image/png"));
         };
         img.src = dataUrl;
@@ -516,8 +516,8 @@ export function PhotoEditor() {
       if (!file) return;
       try {
         const text = await file.text();
-        const project = JSON.parse(text) as EditionalProject;
-        if (project.format !== "editional-project") throw new Error("Invalid format");
+        const project = JSON.parse(text) as MeteorProject;
+        if (project.format !== "meteor-project") throw new Error("Invalid format");
         setProjectName(project.name);
         await loadCanvasFromJson(project.canvas);
         saveRecentProject(project);

@@ -113,7 +113,7 @@ export function LayoutEditor() {
         y: Math.max(20, y - 40),
         width: 240,
         height: 120,
-        text: "ここにテキストを入力してください。Editional Layout では段組みやフォントサイズの調整が可能です。",
+        text: "ここにテキストを入力してください。Meteor Layout では段組みやフォントサイズの調整が可能です。",
         fontSize: 11,
         fontWeight: "normal",
         textAlign: "left",
@@ -233,7 +233,7 @@ export function LayoutEditor() {
             <div className="flex h-7 w-7 items-center justify-center rounded bg-gradient-to-br from-pink-600 to-rose-600 text-xs font-bold text-white">
               La
             </div>
-            <span className="text-sm font-semibold tracking-tight">Editional Layout</span>
+            <span className="text-sm font-semibold tracking-tight">Meteor Layout</span>
           </div>
 
           {/* ページナビゲーション */}

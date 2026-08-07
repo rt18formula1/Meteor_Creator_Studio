@@ -7,10 +7,10 @@ type EditorBridgeHandlers = {
   getProjectName: () => string;
   saveProject: () => void;
   exportPng: () => void;
-  reorderLayer: (fromId: string, toId: string) => void;
-  getSelectedObjectProps: () => Promise<SelectedObjectProps | null>;
-  setObjectProps: (props: Partial<SelectedObjectProps>) => void;
-  applyFilter: (filter: string, value?: number) => void;
+  reorderLayer?: (fromId: string, toId: string) => void;
+  getSelectedObjectProps?: () => Promise<SelectedObjectProps | null>;
+  setObjectProps?: (props: Partial<SelectedObjectProps>) => void;
+  applyFilter?: (filter: string, value?: number) => void;
 };
 
 export type SelectedObjectProps = {

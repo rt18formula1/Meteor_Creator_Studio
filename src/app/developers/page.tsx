@@ -31,7 +31,7 @@ export default function DevelopersPage() {
             <div>
               <h1 className="text-2xl font-semibold">Agent API</h1>
               <p className="mt-2 text-sm text-lumina-text-muted">
-                Manus 等の外部AIエージェントが Editional Photo を操作するための REST API です。
+                Manus 等の外部AIエージェントが Meteor Photo を操作するための REST API です。
                 ステートレス設計のため、キャンバス JSON をリクエストごとに送受信します。
               </p>
             </div>
@@ -109,7 +109,7 @@ curl -X POST ${baseUrl}/api/v1/photo/execute \\
             <h2 className="mb-2 text-sm font-semibold">認証</h2>
             <p className="text-[11px] text-lumina-text-muted">
               環境変数 <code className="text-lumina-accent">EDITIONAL_AGENT_API_KEY</code> を設定すると、
-              リクエストに <code className="text-lumina-accent">X-Editional-Api-Key</code> ヘッダーが必須になります。
+              リクエストに <code className="text-lumina-accent">X-Meteor-Api-Key</code> ヘッダーが必須になります。
               未設定の場合は認証なしで利用可能（開発用）。
             </p>
           </section>

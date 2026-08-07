@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Editional Creative Cloud",
+  title: "Meteor Creator Studio",
   description:
     "プロ向けクリエイティブスイートのフリーミアム版。Adobe CCのワークフローを、無料から始められます。",
 };

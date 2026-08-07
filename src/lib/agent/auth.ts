@@ -13,7 +13,7 @@ export function validateAgentApiKey(request: Request): NextResponse | null {
       {
         error: "unauthorized",
         message:
-          "Invalid or missing API key. Set X-Editional-Api-Key header or Authorization: Bearer <key>.",
+          "Invalid or missing API key. Set X-Meteor-Api-Key header or Authorization: Bearer <key>.",
       },
       { status: 401 },
     );
@@ -26,10 +26,10 @@ export function agentJson<T>(data: T, status = 200) {
   return NextResponse.json(data, {
     status,
     headers: {
-      "X-Editional-Api-Version": "1.0.0",
+      "X-Meteor-Api-Version": "1.0.0",
       "Access-Control-Allow-Origin": "*",
       "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type, X-Editional-Api-Key, Authorization",
+      "Access-Control-Allow-Headers": "Content-Type, X-Meteor-Api-Key, Authorization",
     },
   });
 }

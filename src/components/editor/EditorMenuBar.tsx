@@ -56,7 +56,7 @@ export function EditorMenuBar({
         </Link>
         <span className="mx-1 text-lumina-border">|</span>
         <span className="px-2 text-xs font-medium text-lumina-text">
-          Editional Photo
+          Meteor Photo
         </span>
         <span className="max-w-32 truncate text-[10px] text-lumina-text-muted">
           — {projectName}

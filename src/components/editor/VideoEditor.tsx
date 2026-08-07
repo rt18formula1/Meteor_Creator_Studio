@@ -187,14 +187,14 @@ export function VideoEditor() {
             <div className="absolute inset-0 rounded-lg overflow-hidden bg-black border border-[var(--lumina-border)]/60 shadow-2xl flex items-center justify-center">
               {clips.length>0?(
                 <>
-                  <video ref={videoRef} src={clips[0].url} onTimeUpdate={handleTimeUpdate} className="w5ull h-full object-contain"/>
+                  <video ref={videoRef} src={clips[0].url} onTimeUpdate={handleTimeUpdate} className="w-full h-full object-contain"/>
                   {activeSub&&(
                     <div className="absolute left-4 right-4 flex" style={{top:activeSub.posY+"%",justifyContent:activeSub.align==="left"?"flex-start":activeSub.align==="right"?"flex-end":"center"}}>
                       <span style={{fontSize:activeSub.fontSize,color:activeSub.color,fontWeight:activeSub.bold?"bold":"normal",fontStyle:activeSub.italic?"italic":"normal",background:activeSub.bg+Math.round(activeSub.bgOpacity*255).toString(16).padStart(2,"0"),padding:"4px 12px",borderRadius:4,maxWidth:"90%",textAlign:activeSub.align}}>{activeSub.text}</span>
                     </div>
                   )}
                 </>
-              ):( <div className="text-center text-xs text-[var(--lumina-text-muted)] flex flex-col items-center gap-3 pointer-events-none"><Video className="h-10 w-10 opacity-30"/><p>動男ファイルを追加して偗ください</p></div> )}
+              ):( <div className="text-center text-xs text-[var(--lumina-text-muted)] flex flex-col items-center gap-3 pointer-events-none"><Video className="h-10 w-10 opacity-30"/><p>動画ファイルを追加してくください</p></div> )}
             </div>
           </div>
           <div className="mt-4 flex items-center gap-3 bg-[#181825]/90 backdrop-blur px-4 py-2 rounded-xl border border-[var(--lumina-border)] shadow max-w-lg w-full">
@@ -237,8 +237,8 @@ export function VideoEditor() {
                 <button onClick={()=>setSubForm(f=>({...f,bold:!f.bold}))} className={`ml-1 rounded p-1 ${subForm.bold?"bg-red-600/30 text-red-300":"text-[var(--lumina-text-muted)] hover:bg-[var(--lumina-bg-hover)]"}`}><Bold className="h-3 w-3"/></button>
                 <button onClick={()=>setSubForm(f=>({...f,italic:!f.italic}))} className={`rounded p-1 ${subForm.italic?"bg-red-600/30 text-red-300":"text-[var(--lumina-text-muted)] hover:bg-[var(--lumina-bg-hover)]"}`}><Italic className="h-3 w-3"/></button>
               </div>
-              <div><label className="text-[10px] text-[var(--lumina-text-muted)]">縦位置 ({subForm.posY}%)</label><input type="range" min={0} max={95} value={subForm.posY} onChange={e=>setSubForm(f=>({...f,posY:Number(e.target.value)}))} className="w5ull accent-red-500"/></div>
-              <button onClick={addSubtitle} disabled={!subForm.text.trim()} className="w5ull rounded bg-red-600 hover:bg-red-700 disabled:opacity-40 text-xs font-semibold py-1.5 text-white transition flex items-center justify-center gap-1"><Plus className="h-3.5 w-3.5"/>字幕を追加</button>
+              <div><label className="text-[10px] text-[var(--lumina-text-muted)]">縦位置 ({subForm.posY}%)</label><input type="range" min={0} max={95} value={subForm.posY} onChange={e=>setSubForm(f=>({...f,posY:Number(e.target.value)}))} className="w-full accent-red-500"/></div>
+              <button onClick={addSubtitle} disabled={!subForm.text.trim()} className="w-full rounded bg-red-600 hover:bg-red-700 disabled:opacity-40 text-xs font-semibold py-1.5 text-white transition flex items-center justify-center gap-1"><Plus className="h-3.5 w-3.5"/>字幕を追加</button>
               <div className="space-y-1 pt-1">
                 {subtitles.map(sub=>(
                   <div key={sub.id} onClick={()=>setSelectedId(sub.id)} className={`flex items-center justify-between rounded p-2 text-xs cursor-pointer border ${selectedId===sub.id?"bg-red-600/10 border-red-500/30":"bg-[#1e1e2e]/40 border-transparent hover:bg-[var(--lumina-bg-hover)]"}`}>
@@ -251,7 +251,7 @@ export function VideoEditor() {
           )}
           {activeTab==="clip"&&(
             <div className="lumina-scrollbar flex-1 overflow-y-auto p-3 space-y-2">
-              {clips.length===0?(< p className="py-8 text-center text-[11px] text-[var(--lumina-text-muted)]">動男を追加して偗ください</p>):clips.map(clip=>(
+              {clips.length===0?(< p className="py-8 text-center text-[11px] text-[var(--lumina-text-muted)]">動画を追加してくください</p>):clips.map(clip=>(
                 <div key={clip.id} onClick={()=>setSelectedId(clip.id)} className={`rounded border p-2 cursor-pointer space-y-1.5 ${selectedId===clip.id?"border-red-500/40 bg-red-600/10":"border-[var(--lumina-border)] bg-[#1e1e2e]/40 hover:bg-[var(--lumina-bg-hover)]"}`}>
                   <div className="flex items-center justify-between"><span className="truncate text-xs font-medium">{clip.name}</span><button onClick={e=>{e.stopPropagation();deleteClip(clip.id);}} className="rounded p-0.5 text-[var(--lumina-text-muted)] hover:text-red-400"><Trash2 className="h-3 w-3"/></button></div>
                   <div className="text-[10px] text-[var(--lumina-text-muted)] font-mono">{clip.duration.toFixed(2)}s • offset {clip.startOffset.toFixed(2)}s</div>
@@ -280,7 +280,7 @@ export function VideoEditor() {
         <div className="flex flex-1 overflow-hidden">
           <div className="w52 shrink-0 border-r border-[var(--lumina-border)] flex flex-col">
             <div className="h-5 border-b border-[var(--lumina-border)]"/>
-            {[`んデオ T1`,`字幕 T2`,`BGM T3`].map(l=>(<div key={l} className="flex h-10 items-center justify-end pr-2 border-b border-[var(--lumina-border)]/30"><span className="text-[9px] font-semibold text-[var(--lumina-text-muted)] uppercase">{l</span></div>))}
+            {[`動画 V1`,`字幕 T2`,`BGM T3`].map(l=>(<div key={l} className="flex h-10 items-center justify-end pr-2 border-b border-[var(--lumina-border)]/30"><span className="text-[9px] font-semibold text-[var(--lumina-text-muted)] uppercase">{l}</span></div>))}
           </div>
           <div ref={timelineRef} className="flex-1 overflow-x-auto overflow-y-hidden">
             <div style={{width:timelineWidth,position:"relative"}}>

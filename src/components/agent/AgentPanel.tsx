@@ -20,7 +20,7 @@ const PRESETS: { label: string; commands: EditorCommand[] }[] = [
     commands: [
       {
         type: "add_text",
-        text: "Editional",
+        text: "Meteor",
         x: 760,
         y: 480,
         fontSize: 96,

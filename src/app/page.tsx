@@ -107,7 +107,7 @@ export default function HubPage() {
               <div>
                 <h2 className="text-sm font-semibold text-lumina-text">外部AIエージェント対応</h2>
                 <p className="mt-1 text-[11px] text-lumina-text-muted">
-                  Manus 等のAIが Editional Photo を操作できる REST API を提供しています。
+                  Manus 等のAIが Meteor Photo を操作できる REST API を提供しています。
                   エディター内の AI Agent パネルからも同じ API を利用できます。
                 </p>
                 <Link

@@ -1,6 +1,6 @@
-# Editional Creative Cloud — Agent Integration Guide
+# Meteor Creator Studio — Agent Integration Guide
 
-このドキュメントは **Manus** 等の外部AIエージェントが Editional Photo を操作するためのガイドです。
+このドキュメントは **Manus** 等の外部AIエージェントが Meteor Photo を操作するためのガイドです。
 
 ## 設計思想
 
@@ -19,7 +19,7 @@ https://your-site.netlify.app/api/v1
 `EDITIONAL_AGENT_API_KEY` が設定されている場合:
 
 ```http
-X-Editional-Api-Key: your-secret-key
+X-Meteor-Api-Key: your-secret-key
 ```
 
 または:
@@ -119,10 +119,10 @@ Manus のカスタムツールとして以下を登録:
 ```json
 {
   "name": "editional_photo_edit",
-  "description": "Editional Photo で画像を編集する",
+  "description": "Meteor Photo で画像を編集する",
   "url": "https://your-site.netlify.app/api/v1/photo/execute",
   "method": "POST",
-  "headers": { "Content-Type": "application/json", "X-Editional-Api-Key": "{{EDITIONAL_AGENT_API_KEY}}" }
+  "headers": { "Content-Type": "application/json", "X-Meteor-Api-Key": "{{EDITIONAL_AGENT_API_KEY}}" }
 }
 ```
 

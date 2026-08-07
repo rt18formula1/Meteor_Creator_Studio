@@ -34,8 +34,8 @@ export type FabricObjectJson = {
   [key: string]: unknown;
 };
 
-export type EditionalProject = {
-  format: "editional-project";
+export type MeteorProject = {
+  format: "meteor-project";
   version: 1;
   app: "photo";
   name: string;
@@ -77,10 +77,10 @@ export function createProject(
   name: string,
   width = DEFAULT_CANVAS_WIDTH,
   height = DEFAULT_CANVAS_HEIGHT,
-): EditionalProject {
+): MeteorProject {
   const now = new Date().toISOString();
   return {
-    format: "editional-project",
+    format: "meteor-project",
     version: 1,
     app: "photo",
     name,
