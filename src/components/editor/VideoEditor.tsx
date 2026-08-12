@@ -239,7 +239,7 @@ export function VideoEditor() {
                     </div>
                   )}
                 </>
-              ):( <div className="text-center text-xs text-[var(--lumina-text-muted)] flex flex-col items-center gap-3 pointer-events-none"><Video className="h-10 w-10 opacity-30"/><p>動画ファイルを追加してくください</p></div> )}
+              ):( <div className="text-center text-xs text-[var(--lumina-text-muted)] flex flex-col items-center gap-3 pointer-events-none"><Video className="h-10 w-10 opacity-30"/><p>動画ファイルを追加してください</p></div> )}
             </div>
           </div>
           <div className="mt-4 flex items-center gap-3 bg-[#181825]/90 backdrop-blur px-4 py-2 rounded-xl border border-[var(--lumina-border)] shadow max-w-lg w-full">
@@ -258,7 +258,7 @@ export function VideoEditor() {
         </div>
         <aside className="w-72 shrink-0 border-l border-[var(--lumina-border)] bg-[#181825] flex flex-col">
           <div className="flex border-b border-[var(--lumina-border)]">
-            {[(["sub","字幕"],["clip","クリップ"],["audio","オーディオ"]] as const).map(([id,label])=>(
+            {([["sub","字幕"],["clip","クリップ"],["audio","オーディオ"]] as const).map(([id,label])=>(
               <button key={id} onClick={()=>setActiveTab(id)} className={`flex-1 py-2 text-[11px] font-semibold transition ${activeTab===id?"border-b-2 border-red-500 text-[var(--lumina-text)]":"text-[var(--lumina-text-muted)] hover:text-[var(--lumina-text)]"}`}>{label}</button>
             ))}
           </div>
@@ -266,8 +266,8 @@ export function VideoEditor() {
             <div className="lumina-scrollbar flex-1 overflow-y-auto p-3 space-y-2">
               <div><label className="text-[10px] text-[var(--lumina-text-muted)]">テキスト</label><input value={subForm.text} onChange={e=>setSubForm(f=>({...f,text:e.target.value}))} className="mt-0.5 w-full rounded border border-[var(--lumina-border)] bg-[#1e1e2e] px-2 py-1 text-xs outline-none focus:border-red-500"/></div>
               <div className="flex gap-2">
-                <div className="flex-1"><label className="text-[10px] text-[var(--lumina-text-muted)]">開h��(��)</label><input type="number" value={subForm.start} onChange={e=>setSubForm(f=>({...f,start:Number(e.target.value)}))} className="mt-0.5 w-full rounded border border-[var(--lumina-border)] bg-[#1e1e2e] px-2 py-1 text-xs text-center outline-none"/></div>
-                <div className="flex-1"><label className="text-[10px] text-[var(--lumina-text-muted)]">終了(科)</label><input type="number" value={subForm.end} onChange={e=>setSubForm(f=>({...f,end:Number(e.target.value)}))} className="mt-0.5 w-full rounded border border-[var(--lumina-border)] bg-[#1e1e2e] px-2 py-1 text-xs text-center outline-none"/></div>
+                <div className="flex-1"><label className="text-[10px] text-[var(--lumina-text-muted)]">開始(秒)</label><input type="number" value={subForm.start} onChange={e=>setSubForm(f=>({...f,start:Number(e.target.value)}))} className="mt-0.5 w-full rounded border border-[var(--lumina-border)] bg-[#1e1e2e] px-2 py-1 text-xs text-center outline-none"/></div>
+                <div className="flex-1"><label className="text-[10px] text-[var(--lumina-text-muted)]">終了(秒)</label><input type="number" value={subForm.end} onChange={e=>setSubForm(f=>({...f,end:Number(e.target.value)}))} className="mt-0.5 w-full rounded border border-[var(--lumina-border)] bg-[#1e1e2e] px-2 py-1 text-xs text-center outline-none"/></div>
               </div>
               <div className="flex gap-2 items-end">
                 <div className="flex-1"><label className="text-[10px] text-[var(--lumina-text-muted)]">色</label><input type="color" value={subForm.color} onChange={e=>setSubForm(f=>({...f,color:e.target.value}))} className="mt-0.5 h-7 w-full cursor-pointer rounded border border-[var(--lumina-border)]"/></div>
@@ -309,7 +309,7 @@ export function VideoEditor() {
           {activeTab==="audio"&&(
             <div className="lumina-scrollbar flex-1 overflow-y-auto p-3 space-y-2">
               <button onClick={()=>audioInputRef.current?.click()} className="w-full rounded border border-dashed border-[var(--lumina-border)] py-3 text-xs text-[var(--lumina-text-muted)] hover:border-red-500/50 hover:text-[var(--lumina-text)] transition flex items-center justify-center gap-1"><Music className="h-3.5 w-3.5"/>BGM / SE を追加</button>
-              {audioTracks.length===0?(<p className="py-4 text-center text-[11px] text-[var(--lumina-text-muted)]">音声トラックがありませゔ0�>):audioTracks.map(at=>(
+              {audioTracks.length===0?(<p className="py-4 text-center text-[11px] text-[var(--lumina-text-muted)]">音声トラックがありません</p>):audioTracks.map(at=>(
                 <div key={at.id} className="rounded border border-[var(--lumina-border)] bg-[#1e1e2e]/40 p-2 space-y-1.5">
                   <div className="flex items-center justify-between"><span className="truncate text-xs font-medium">{at.name}</span><button onClick={()=>{const n={clips,subs:subtitles,audio:audioTracks.filter(a=>a.id!==at.id)};setAudioTracks(n.audio);pushHistory(n);}} className="rounded p-0.5 text-[var(--lumina-text-muted)] hover:text-red-400"><Trash2 className="h-3 w-3"/></button></div>
                   <div className="flex items-center gap-2"><Volume2 className="h-3 w-3 text-[var(--lumina-text-muted)]"/><input type="range" min={0} max={1} step={0.05} value={at.volume} onChange={e=>{setAudioTracks(prev=>prev.map(a=>a.id===at.id?{...a,volume:Number(e.target.value)}:a));}} className="flex-1 accent-red-500"/><span className="text-[10px] text-[var(--lumina-text-muted)] w-8 text-right">{Math.round(at.volume*100)}%</span></div>
