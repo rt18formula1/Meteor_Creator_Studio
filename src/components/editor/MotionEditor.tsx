@@ -12,6 +12,9 @@ import {
   Key,
   Sparkles,
   Folder,
+  Film,
+  Trash2,
+  Sliders,
 } from "lucide-react";
 import { AiCommandPalette } from "@/components/agent/AiCommandPalette";
 import { ProjectBrowserModal } from "@/components/hub/ProjectBrowserModal";
