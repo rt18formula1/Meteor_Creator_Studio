@@ -55,11 +55,11 @@ export function PropertiesPanel() {
   const updateProp = useCallback(<K extends keyof SelectedObjectProps>(
     key: K, value: SelectedObjectProps[K]
   ) => {
-    handlers?.setObjectProps({ [key]: value });
+    handlers?.setObjectProps?.({ [key]: value });
   }, [handlers]);
 
   const applyFilter = useCallback((filterId: string) => {
-    handlers?.applyFilter(filterId, filterValues[filterId]);
+    handlers?.applyFilter?.(filterId, filterValues[filterId]);
   }, [handlers, filterValues]);
 
   return (

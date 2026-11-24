@@ -58,7 +58,7 @@ export function LayersPanel({
     setLayers(newLayers);
 
     // fabricキャンバス側にも反映
-    handlers?.reorderLayer(fromId, toId);
+    handlers?.reorderLayer?.(fromId, toId);
 
     dragItem.current = null;
     dragOver.current = null;

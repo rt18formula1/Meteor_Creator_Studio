@@ -72,18 +72,24 @@ netlify init        # 新規サイト作成 or 既存サイトにリンク
 netlify deploy --prod
 ```
 
-### 環境変数（将来の機能用）
+### 環境変数
 
-Netlify Dashboard → **Site configuration** → **Environment variables** で設定します。
+Netlify Dashboard → **Site configuration** → **Environment variables** で設定します。ローカル開発では `.env.local.example` を `.env.local` にコピーして使います。
 
 | 変数 | 用途 |
 |---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` | 認証・クラウド同期 |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase クライアント |
-| `STRIPE_SECRET_KEY` | Pro プラン決済（サーバー側） |
-| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Stripe クライアント |
+| `NEXT_PUBLIC_FIREBASE_API_KEY` | Firebase Authentication（Web API キー） |
+| `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | Firebase Authentication（認証ドメイン） |
+| `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | Firebase プロジェクト ID |
+| `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` | Firebase Storage バケット（将来のクラウド同期用） |
+| `NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID` | Firebase 送信者 ID |
+| `NEXT_PUBLIC_FIREBASE_APP_ID` | Firebase ウェブアプリ ID |
+| `STRIPE_SECRET_KEY` | Pro プラン決済（サーバー側・将来用） |
+| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Stripe クライアント（将来用） |
 
 `NEXT_PUBLIC_` 付きの変数はビルド時に埋め込まれるため、変更後は再デプロイが必要です。
+
+Firebase の環境変数が未設定でもアプリはビルド・動作します。その場合、ログイン機能だけが無効になり、`/login` に「認証はまだ設定されていません」と表示されます。エディターはログインなしでそのまま使えます。
 
 ## 技術スタック
 
@@ -119,7 +125,7 @@ Netlify の環境変数に `EDITIONAL_AGENT_API_KEY` を設定すると API キ�
 5. [x] プロジェクト保存（`.editional.json`）
 6. [x] AI コマンドパレット（Cmd+K）— Vector / Design / Motion / 3D
 7. [x] クラウドプロジェクトブラウザ（ローカル同期）
-8. [ ] ユーザー認証（Supabase Auth）
+8. [x] ユーザー認証（Firebase Authentication）— Google / メール+パスワード対応。Firebase プロジェクトの作成と環境変数の設定が必要（`.env.local.example` 参照）。クラウド同期は今後の作業
 9. [ ] クラウド同期・リモートファイル管理
 10. [ ] Stripe 決済連携
 11. [ ] PSD / AI ファイル互換

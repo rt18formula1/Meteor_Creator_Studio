@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useState } from "react";
 import { useSubscription } from "@/store/use-subscription";
 import { ProjectBrowserModal } from "@/components/hub/ProjectBrowserModal";
-import { Crown, Cloud, Bell, User } from "lucide-react";
+import { AuthButton } from "@/components/hub/AuthButton";
+import { Crown, Cloud, Bell } from "lucide-react";
 
 export function HubHeader() {
   const tier = useSubscription((s) => s.tier);
@@ -64,13 +65,7 @@ export function HubHeader() {
           >
             <Bell className="h-4 w-4" />
           </button>
-          <button
-            type="button"
-            className="rounded p-1.5 text-lumina-text-muted transition hover:bg-lumina-bg-hover hover:text-lumina-text"
-            aria-label="アカウント"
-          >
-            <User className="h-4 w-4" />
-          </button>
+          <AuthButton />
         </div>
       </header>
       <ProjectBrowserModal isOpen={showProjects} onClose={() => setShowProjects(false)} />
